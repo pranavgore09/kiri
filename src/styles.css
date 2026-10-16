@@ -157,9 +157,7 @@ em { font-style: italic; color: var(--accent); }
 .step h1 { font-size: 36px; margin-bottom: 18px; }
 .step .stage-pin + .panel { border-top: 0; }
 
-.question { padding-top: 48px; }
-.question h1 { font-size: 46px; margin-bottom: 10px; }
-.question .lede { margin-bottom: 32px; }
+.start { padding-top: 32px; }
 .choices { display: grid; gap: 14px; }
 .choice {
   display: grid;
@@ -172,9 +170,7 @@ em { font-style: italic; color: var(--accent); }
   transition: border-color 0.15s, transform 0.15s;
 }
 .choice:active { transform: scale(0.99); border-color: var(--accent); }
-.choice .wallet-svg { max-width: 220px; margin: 0 auto 14px; }
-.choice strong { font-family: var(--serif); font-size: 26px; font-weight: 500; }
-.choice span { color: var(--ink-soft); font-size: 14px; }
+.choice .wallet-svg { max-width: 220px; max-height: 150px; margin: 0 auto; }
 
 .segmented {
   display: grid;
@@ -205,7 +201,32 @@ em { font-style: italic; color: var(--accent); }
   background: radial-gradient(90% 90% at 50% 20%, #fff 0%, var(--paper-2) 100%);
   border-radius: var(--radius);
 }
-.stage { overflow: hidden; touch-action: pan-y; }
+.stage { position: relative; overflow: hidden; touch-action: pan-y; transition: padding 0.22s ease; }
+/* Colour picker: the wallet shrinks a little and colours sit in a column on each side. */
+.stage.picking {
+  min-height: 200px; /* room for a column of colours, whatever the wallet's shape */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: 62px;
+  padding-right: 62px;
+}
+.picker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 58px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  animation: picker-in 0.2s ease;
+}
+.picker.left { left: 4px; }
+.picker.right { right: 4px; }
+.picker .swatch { gap: 3px; font-size: 10px; }
+.picker .swatch i { width: 32px; height: 32px; }
+@keyframes picker-in { from { opacity: 0; } }
 .stage .wallet-svg { max-height: 25vh; }
 .slide { animation: slide-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
 .slide.from-left { --from: -24px; }

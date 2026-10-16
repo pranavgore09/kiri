@@ -8,7 +8,6 @@ import { grow, saddleStitches, type Pt, type Shape } from "./geometry";
 
 const BEVEL = 0.25;
 export const thick = (id: string) => (id === "main" ? catalog.thickness.main : catalog.thickness.other);
-export const STITCH = catalog.card_pockets.stitch;
 
 // Saddle stitches on a surface at height z, as in the 2D drawing.
 export function Stitch({ shape, z, color }: { shape: Shape; z: number; color: string }) {

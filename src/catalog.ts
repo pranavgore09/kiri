@@ -25,7 +25,7 @@ export type Len = number | "fit";
 type Box<H> = [number, number, number, H];
 
 // A pocket position. Its rect is worked out by layout.ts from the card pocket maths.
-export interface Slot { id: string; rect: Rect; accepts: Entry[]; corners?: Corner[]; mirror?: boolean }
+export interface Slot { id: string; rect: Rect; corners?: Corner[]; mirror?: boolean }
 export interface SideDef<H = number> {
   id: string;
   label: string;
@@ -36,8 +36,19 @@ export interface SideDef<H = number> {
   mirror?: boolean;
   slots: Slot[]; // from the stack's fixed end outwards; filled in order
 }
-export interface PieceDef<H = number> { id: string; label: string; rect: Box<H>; corners?: Corner[]; stitch?: boolean; open?: Side }
-export interface StitchLine<H = number> { rect: Box<H>; corners?: Corner[]; open?: Side }
+export interface PieceDef<H = number> {
+  id: string;
+  label: string;
+  rect: Box<H>;
+  corners?: Corner[];
+  stitch?: boolean;
+  open?: Side; // left unstitched: a slip pocket's opening
+  edge?: string; // top edge cut to this pocket-edge drawing
+  mirror?: boolean;
+  spine?: Side; // a folded side: never stitched
+  contrast?: boolean; // takes the pocket colour
+}
+interface StitchLine<H = number> { rect: Box<H>; corners?: Corner[]; open?: Side }
 export interface View<H = number> {
   id: string;
   label: string;
@@ -49,16 +60,18 @@ export interface View<H = number> {
 }
 export interface Product {
   label: string;
-  preview: "fold" | "turn"; // the review step's film
+  preview: "fold" | "turn"; // the film shown before the specs
+  group?: string; // products shown as one choice…
+  variant?: string; // …and picked between by this name
   pocket_types: Entry[];
   edges: string[];
   corners: string[];
-  default: { edge: string; corner: string; pockets: Record<string, number> };
+  default: { edge?: string; corner: string; pockets: Record<string, number> };
   views: View<Len>[];
 }
-export interface CardPockets { space: number; show: number; step: number; stitch: number }
+interface CardPockets { space: number; show: number; step: number; stitch: number }
 export type StyleKind = "edge" | "corner";
-export interface Catalog {
+interface Catalog {
   site: { name: string; tagline: string };
   finishes: Finish[];
   threads: Thread[];
@@ -78,7 +91,6 @@ for (const product of Object.values(catalog.products)) {
     side.slots = Array.from({ length: side.max_pockets }, (_, k) => ({
       id: `${side.id}-${k + 1}`,
       rect: [0, 0, 0, 0],
-      accepts: product.pocket_types,
       corners: side.corners,
       mirror: side.mirror,
     }));
@@ -136,7 +148,7 @@ export const selectionColor = (finishId: string, a: string, b: string) => lookup
 export const previewBackground = (finishId: string, a: string, b: string) => lookup(finish(finishId).preview_background, a, b);
 export const thread = (name: string) => catalog.threads.find((t) => t.name === name) ?? catalog.threads[0];
 
-export interface SlotRef { slot: Slot; side: SideDef<Len>; view: View<Len>; index: number }
+interface SlotRef { slot: Slot; side: SideDef<Len>; view: View<Len>; index: number }
 
 export function slotsOf(product: Product): SlotRef[] {
   return product.views.flatMap((view) =>

@@ -68,8 +68,8 @@ export default function Home() {
       </section>
 
       <section className="cta">
-        <p className="eyebrow">It starts with one question</p>
-        <h2>Do you still carry cash?</h2>
+        <p className="eyebrow">Bifold, card holder or wrap</p>
+        <h2>Pick yours.</h2>
         <a href="#/design" className="btn btn-primary">Start designing</a>
       </section>
 

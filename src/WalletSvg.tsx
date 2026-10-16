@@ -1,8 +1,8 @@
 import { useId, useMemo } from "react";
 import { catalog, finish, selectionColor, styleShape, thread, type Len, type View } from "./catalog";
 import { leatherOf, nextSlot, type Design } from "./design";
-import { buildShape, saddleStitches, toPath, type Shape } from "./geometry";
-import { backToFront, laidOut } from "./layout";
+import { pieceShape, saddleStitches, toPath, type Shape } from "./geometry";
+import { laidOut, placed, pocketShape } from "./layout";
 
 interface Props {
   design: Design;
@@ -14,7 +14,7 @@ interface Props {
   onRemove?: (slotId: string) => void;
 }
 
-export function lighten(hex: string, amt: number): string {
+function lighten(hex: string, amt: number): string {
   const n = parseInt(hex.slice(1), 16);
   const mix = (c: number) => Math.round(c + (255 - c) * amt);
   return `rgb(${mix(n >> 16)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
@@ -42,8 +42,6 @@ function Leather({ shape, color, threadColor, sheen, shadow, selected, matte, on
   );
 }
 
-const STITCH = catalog.card_pockets.stitch;
-
 export default function WalletSvg({ design, view: raw, armed, selected, onSlot, onPiece, onRemove }: Props) {
   const view = useMemo(() => laidOut(design, raw), [design, raw]);
   const uid = useId().replace(/:/g, "");
@@ -60,36 +58,31 @@ export default function WalletSvg({ design, view: raw, armed, selected, onSlot, 
   const outline = useMemo(() => {
     if (!selected) return undefined;
     for (const side of view.sides ?? []) {
-      const placed = backToFront(side).filter((s) => design.pockets[s.id]);
-      const i = placed.findIndex((s) => s.id === selected);
+      const stack = placed(design, side);
+      const i = stack.findIndex((s) => s.id === selected);
       if (i < 0) continue;
       const base = view.pieces.find((p) => p.rect.every((v, j) => v === side.area[j]));
-      const above = i > 0 ? colorOf(placed[i - 1].id) : base ? colorOf(base.id) : undefined;
-      const below = placed[i + 1] ? colorOf(placed[i + 1].id) : undefined;
+      const above = i > 0 ? colorOf(stack[i - 1].id) : base ? colorOf(base.id) : undefined;
+      const below = stack[i + 1] ? colorOf(stack[i + 1].id) : undefined;
       const own = above ?? below ?? colorOf(selected);
       return selectionColor(design.finish, above ?? own, below ?? own);
     }
-    return selectionColor(design.finish, colorOf(selected), colorOf(selected));
+    // A piece: against itself, and the main panel it lies on (a contrast piece like the wrap
+    // wallet's outer piece).
+    return selectionColor(design.finish, colorOf(selected), colorOf("main"));
   }, [selected, view, design]);
 
   const pieces = useMemo(
-    () => view.pieces.map((p) => ({ p, shape: buildShape({ rect: p.rect, corners: p.corners, open: p.open }, corner, undefined, STITCH) })),
+    () => view.pieces.map((p) => ({ p, shape: pieceShape(p, corner) })),
     [view, corner],
   );
   const stitchLines = useMemo(
-    () => (view.stitch_lines ?? []).map((l) => buildShape({ rect: l.rect, corners: l.corners, open: l.open }, corner, undefined, STITCH)),
+    () => (view.stitch_lines ?? []).map((l) => pieceShape(l, corner)),
     [view, corner],
   );
-  const slots = useMemo(
-    () =>
-      (view.sides ?? []).flatMap((side) => {
-        const edge = styleShape("edge", design.edges[side.id]);
-        return backToFront(side).map((slot) => ({
-          slot,
-          shape: buildShape({ rect: slot.rect, corners: slot.corners, mirror: slot.mirror, mouth: "top" }, corner, edge, STITCH),
-        }));
-      }),
-    [view, corner, design.edges],
+  const pockets = useMemo(
+    () => (view.sides ?? []).flatMap((side) => placed(design, side).map((slot) => ({ slot, shape: pocketShape(design, side, slot) }))),
+    [view, design],
   );
 
   return (
@@ -113,6 +106,7 @@ export default function WalletSvg({ design, view: raw, armed, selected, onSlot, 
           threadColor={p.stitch === false ? undefined : threadColor}
           sheen={sheen}
           matte={matte}
+          shadow={p.edge ? shadow : undefined /* a piece lying over another, like a pocket */}
           selected={selected === p.id ? outline : undefined}
           onClick={onPiece && (() => onPiece(p.id))}
         />
@@ -121,23 +115,19 @@ export default function WalletSvg({ design, view: raw, armed, selected, onSlot, 
         <Stitch key={i} shape={shape} color={threadColor} />
       ))}
 
-      {slots.map(({ slot, shape }) => {
-        if (!design.pockets[slot.id]) return null;
-        return (
-          <g key={slot.id}>
-            <Leather
-              shape={shape}
-              color={leatherOf(design, slot.id).color}
-              threadColor={threadColor}
-              sheen={sheen}
-              matte={matte}
-              shadow={shadow}
-              selected={selected === slot.id ? outline : undefined}
-              onClick={(onSlot || onPiece) && (() => (onSlot ?? onPiece)!(slot.id))}
-            />
-          </g>
-        );
-      })}
+      {pockets.map(({ slot, shape }) => (
+        <Leather
+          key={slot.id}
+          shape={shape}
+          color={leatherOf(design, slot.id).color}
+          threadColor={threadColor}
+          sheen={sheen}
+          matte={matte}
+          shadow={shadow}
+          selected={selected === slot.id ? outline : undefined}
+          onClick={(onSlot || onPiece) && (() => (onSlot ?? onPiece)!(slot.id))}
+        />
+      ))}
 
       {armed &&
         (view.sides ?? []).map((side) => {
@@ -148,7 +138,7 @@ export default function WalletSvg({ design, view: raw, armed, selected, onSlot, 
         })}
 
       {onRemove && selected && design.pockets[selected] && (() => {
-        const slot = slots.find((s) => s.slot.id === selected)?.slot;
+        const slot = pockets.find((s) => s.slot.id === selected)?.slot;
         if (!slot) return null;
         const [x, y, w] = slot.rect;
         return (

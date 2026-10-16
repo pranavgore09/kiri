@@ -1,7 +1,8 @@
 import { toPng } from "html-to-image";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { catalog, finish, inStock, piecesOf, threadInStock, previewBackground, slotsOf, styleShape, type Entry, type Len, type StyleKind, type View } from "./catalog";
+import { catalog, finish, inStock, piecesOf, previewBackground, styleShape, threadInStock, type Entry, type Len, type StyleKind, type View } from "./catalog";
 import {
+  accentIds,
   allOneColour,
   freshDesign,
   leatherOf,
@@ -10,7 +11,6 @@ import {
   productOf,
   removePocket,
   save,
-  setBody,
   setCorner,
   setEdge,
   setFinish,
@@ -24,7 +24,7 @@ import WalletSvg from "./WalletSvg";
 
 const Film = lazy(() => import("./Film"));
 
-const STEPS = ["Start", "Pockets", "Colours", "Review"];
+const STEPS = ["Start", "Pockets", "Colours", "Film", "Specs"];
 
 export default function Builder() {
   const initial = useMemo(load, []);
@@ -70,31 +70,34 @@ export default function Builder() {
         )}
       </header>
 
-      {!current && <Question onChoose={choose} />}
+      {!current && <Start onChoose={choose} />}
       {current && step === 1 && <Pockets design={current} onChange={setDesign} onNext={() => setStep(2)} />}
       {current && step === 2 && <Colours design={current} onChange={setDesign} onNext={() => setStep(3)} />}
-      {current && step === 3 && <Review design={current} onEdit={() => setStep(1)} />}
+      {current && step === 3 && <FilmStep design={current} onSpecs={() => setStep(4)} onEdit={() => setStep(1)} />}
+      {current && step === 4 && <Specs design={current} onEdit={() => setStep(1)} />}
     </div>
   );
 }
 
-function Question({ onChoose }: { onChoose: (productId: string) => void }) {
+// The first step: one picture per wallet, no words; tap one to start with it.
+const STARTERS: { product: string; body: string; label: string }[] = [
+  { product: "bifold", body: "Bone", label: "Vertical bifold" },
+  { product: "cardholder", body: "Ortensia", label: "Card holder" },
+  { product: "wrap_vertical", body: "Mosto", label: "Wrap wallet" },
+];
+
+function Start({ onChoose }: { onChoose: (productId: string) => void }) {
   return (
-    <main className="step question">
-      <p className="eyebrow">One question</p>
-      <h1>Do you still carry cash?</h1>
-      <p className="lede">Or are cards enough — even when you travel abroad?</p>
+    <main className="step start">
       <div className="choices">
-        <button className="choice" onClick={() => onChoose("bifold")}>
-          <WalletSvg design={freshDesign("bifold")} view={catalog.products.bifold.views[1]} />
-          <strong>I carry cash</strong>
-          <span>Notes and cards</span>
-        </button>
-        <button className="choice" onClick={() => onChoose("cardholder")}>
-          <WalletSvg design={freshDesign("cardholder", "Ortensia")} view={catalog.products.cardholder.views[0]} />
-          <strong>Cards are enough</strong>
-          <span>Slim and light</span>
-        </button>
+        {STARTERS.map(({ product, body, label }) => {
+          const p = catalog.products[product];
+          return (
+            <button key={product} className="choice" aria-label={label} onClick={() => onChoose(product)}>
+              <WalletSvg design={freshDesign(product, body)} view={p.views.find((v) => v.face !== "back") ?? p.views[0]} />
+            </button>
+          );
+        })}
       </div>
     </main>
   );
@@ -122,21 +125,44 @@ function FinishSwitch({ design, onChange }: { design: Design; onChange: (d: Desi
   );
 }
 
+// One tab per product, or per group of variants (wrap wallet), then the variants to pick from.
 function ProductSwitch({ design, onChange }: { design: Design; onChange: (d: Design) => void }) {
+  const products = Object.entries(catalog.products);
+  const current = productOf(design);
+  const tabs = products.filter(([, p], i) => !p.group || products.findIndex(([, q]) => q.group === p.group) === i);
+  const inTab = (id: string) => id === design.product || (!!current.group && catalog.products[id].group === current.group);
+  const variants = current.group ? products.filter(([, p]) => p.group === current.group) : [];
   return (
-    <div className="segmented" role="tablist">
-      {Object.entries(catalog.products).map(([id, p]) => (
-        <button
-          key={id}
-          role="tab"
-          aria-selected={design.product === id}
-          className={design.product === id ? "on" : ""}
-          onClick={() => onChange(switchProduct(design, id))}
-        >
-          {p.label}
-        </button>
-      ))}
-    </div>
+    <>
+      <div className="segmented" role="tablist">
+        {tabs.map(([id, p]) => (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={inTab(id)}
+            className={inTab(id) ? "on" : ""}
+            onClick={() => !inTab(id) && onChange(switchProduct(design, id))}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+      {variants.length > 1 && (
+        <div className="segmented" role="tablist">
+          {variants.map(([id, p]) => (
+            <button
+              key={id}
+              role="tab"
+              aria-selected={design.product === id}
+              className={design.product === id ? "on" : ""}
+              onClick={() => onChange(switchProduct(design, id))}
+            >
+              {p.variant}
+            </button>
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -219,8 +245,9 @@ function CornerPicker({ design, onChange }: { design: Design; onChange: (d: Desi
 
 // The wallet preview stays pinned under the top bar while the choices scroll beneath it,
 // so every tap shows its result without scrolling back up. One view at a time; swipe or tap a tab to switch.
-function Stage({ views, active, onActive, hint, children }: {
+function Stage({ views, active, onActive, hint, children, aside }: {
   views: View<Len>[]; active: View<Len>; onActive: (id: string) => void; hint: ReactNode; children: ReactNode;
+  aside?: [ReactNode, ReactNode]; // columns shown left and right of the wallet (the colour picker)
 }) {
   const start = useRef<{ x: number; y: number } | null>(null);
   const [from, setFrom] = useState<"left" | "right">("right");
@@ -251,8 +278,18 @@ function Stage({ views, active, onActive, hint, children }: {
           ))}
         </div>
       )}
-      <figure className="stage" onTouchStart={views.length > 1 ? onTouchStart : undefined} onTouchEnd={views.length > 1 ? onTouchEnd : undefined}>
+      <figure
+        className={`stage ${aside ? "picking" : ""}`}
+        onTouchStart={views.length > 1 ? onTouchStart : undefined}
+        onTouchEnd={views.length > 1 ? onTouchEnd : undefined}
+      >
         <div key={active.id} className={`slide from-${from}`}>{children}</div>
+        {aside && (
+          <>
+            <div className="picker left">{aside[0]}</div>
+            <div className="picker right">{aside[1]}</div>
+          </>
+        )}
       </figure>
       <p className="hint">{hint}</p>
     </div>
@@ -267,7 +304,9 @@ function useActiveView(views: View<Len>[], preferred: View<Len>) {
 function Pockets({ design, onChange, onNext }: { design: Design; onChange: (d: Design) => void; onNext: () => void }) {
   const [armed, setArmed] = useState<Entry | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const views = productOf(design).views.filter((v) => v.sides?.length);
+  const product = productOf(design);
+  const placing = product.pocket_types.length > 0; // the wrap wallet has no pockets to place
+  const views = placing ? product.views.filter((v) => v.sides?.length) : product.views;
   const [view, setView] = useActiveView(views, views[0]);
 
   const onSlot = (id: string) => {
@@ -281,14 +320,16 @@ function Pockets({ design, onChange, onNext }: { design: Design; onChange: (d: D
 
   return (
     <main className="step">
-      <h1>Your pockets</h1>
+      <h1>{placing ? "Your pockets" : "Your wallet"}</h1>
       <ProductSwitch design={design} onChange={(d) => { setArmed(null); setSelected(null); onChange(d); }} />
 
       <Stage
         views={views}
         active={view}
         onActive={setView}
-        hint={armed ? "Now tap where it goes." : selected ? "Tap × to remove it." : "Tap a pocket to remove it."}
+        hint={
+          !placing ? "Swipe to see the back." : armed ? "Now tap where it goes." : selected ? "Tap × to remove it." : "Tap a pocket to remove it."
+        }
       >
         <WalletSvg
           design={design}
@@ -297,26 +338,28 @@ function Pockets({ design, onChange, onNext }: { design: Design; onChange: (d: D
           selected={selected}
           onSlot={onSlot}
           onPiece={() => setSelected(null)}
-          onRemove={(id) => { onChange(removePocket(design, id)); setSelected(null); }}
+          onRemove={placing ? (id) => { onChange(removePocket(design, id)); setSelected(null); } : undefined}
         />
       </Stage>
 
-      <section className="panel">
-        <h2>Add a pocket</h2>
-        <div className="tiles">
-          {productOf(design).pocket_types.map((entry) => (
-            <button
-              key={entry}
-              className={`tile ${armed === entry ? "on" : ""}`}
-              aria-label="Add a pocket"
-              aria-pressed={armed === entry}
-              onClick={() => { setSelected(null); setArmed(armed === entry ? null : entry); }}
-            >
-              <PocketIcon />
-            </button>
-          ))}
-        </div>
-      </section>
+      {placing && (
+        <section className="panel">
+          <h2>Add a pocket</h2>
+          <div className="tiles">
+            {product.pocket_types.map((entry) => (
+              <button
+                key={entry}
+                className={`tile ${armed === entry ? "on" : ""}`}
+                aria-label="Add a pocket"
+                aria-pressed={armed === entry}
+                onClick={() => { setSelected(null); setArmed(armed === entry ? null : entry); }}
+              >
+                <PocketIcon />
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <EdgePicker
         design={design}
@@ -335,15 +378,30 @@ function Pockets({ design, onChange, onNext }: { design: Design; onChange: (d: D
 function Colours({ design, onChange, onNext }: { design: Design; onChange: (d: Design) => void; onNext: () => void }) {
   const [selected, setSelected] = useState<string | null>(null);
   const product = productOf(design);
-  const label = selected
-    ? piecesOf(product).find((p) => p.id === selected)?.label ?? "Pocket"
-    : null;
-  const active = design.colors[selected ?? "main"];
+  const label = selected ? piecesOf(product).find((p) => p.id === selected)?.label ?? "Pocket" : null;
   const [view, setView] = useActiveView(product.views, product.views.find((v) => v.sides?.length) ?? product.views[0]);
 
-  // The selected piece stays selected, so several colours can be tried on it in a row.
-  const pick = (name: string) => onChange(selected ? setPiece(design, selected, name) : setBody(design, name));
+  // Tap a part: its colours appear on either side of the wallet. Pick one and they go away;
+  // tap the part again, or anywhere off the wallet, to close them without a change.
+  const pick = (name: string) => {
+    if (selected) onChange(setPiece(design, selected, name));
+    setSelected(null);
+  };
   const toggle = (id: string) => setSelected(selected === id ? null : id);
+  const leathers = finish(design.finish).leathers;
+  const half = Math.ceil(leathers.length / 2);
+  const column = (list: typeof leathers) =>
+    list.map((l) => (
+      <button
+        key={l.name}
+        className={`swatch ${design.colors[selected!] === l.name ? "on" : ""}`}
+        disabled={!inStock(design.finish, l.name)}
+        onClick={() => pick(l.name)}
+      >
+        <i style={{ background: l.color }} />
+        <span>{l.name}</span>
+      </button>
+    ));
 
   return (
     <main className="step">
@@ -353,39 +411,24 @@ function Colours({ design, onChange, onNext }: { design: Design; onChange: (d: D
         views={product.views}
         active={view}
         onActive={setView}
+        aside={selected ? [column(leathers.slice(0, half)), column(leathers.slice(half))] : undefined}
         hint={
           label ? (
             <>
-              Colouring: <strong>{label}</strong>{" "}
-              <button className="link" onClick={() => setSelected(null)}>done</button>
+              Pick a colour for: <strong>{label}</strong>
             </>
           ) : (
-            "Tap any piece to give it its own colour."
+            <>
+              Tap a part to colour it ·{" "}
+              <button className="link" onClick={() => onChange(allOneColour(design))}>all one colour</button>
+            </>
           )
         }
       >
-        <WalletSvg design={design} view={view} selected={selected} onPiece={toggle} />
-      </Stage>
-
-      <section className="panel">
-        <h2>Leather</h2>
-        <div className="swatches">
-          {finish(design.finish).leathers.map((l) => (
-            <button
-              key={l.name}
-              className={`swatch ${active === l.name ? "on" : ""}`}
-              disabled={!inStock(design.finish, l.name)}
-              onClick={() => pick(l.name)}
-            >
-              <i style={{ background: l.color }} />
-              <span>{l.name}</span>
-            </button>
-          ))}
+        <div onClick={(e) => (e.target as Element).tagName === "svg" && setSelected(null)}>
+          <WalletSvg design={design} view={view} selected={selected} onPiece={toggle} />
         </div>
-        <button className="link" onClick={() => { onChange(allOneColour(design)); setSelected(null); }}>
-          Make it all one colour
-        </button>
-      </section>
+      </Stage>
 
       <section className="panel">
         <h2>Thread</h2>
@@ -405,7 +448,7 @@ function Colours({ design, onChange, onNext }: { design: Design; onChange: (d: D
       </section>
 
       <div className="actions">
-        <button className="btn btn-primary btn-block" onClick={onNext}>Next: review</button>
+        <button className="btn btn-primary btn-block" onClick={onNext}>Next: see it</button>
       </div>
     </main>
   );
@@ -421,7 +464,31 @@ function describe(items: string[]): string {
   return [...counts].map(([i, n]) => (n > 1 ? `${n} × ${i}` : i)).join(", ");
 }
 
-function Review({ design, onEdit }: { design: Design; onEdit: () => void }) {
+// The film of the finished wallet, then on to its specs.
+function FilmStep({ design, onSpecs, onEdit }: { design: Design; onSpecs: () => void; onEdit: () => void }) {
+  // Background contrasts with the main panel and the leather most pockets (or contrast pieces) are in.
+  const main = leatherOf(design, "main").name;
+  const leathers = accentIds(design).map((id) => leatherOf(design, id).name);
+  const accent = leathers.sort((a, b) => leathers.filter((x) => x === b).length - leathers.filter((x) => x === a).length)[0] ?? main;
+
+  return (
+    <main className="step">
+      <h1>Your wallet</h1>
+      <div className={`viewer ${previewBackground(design.finish, main, accent)}`}>
+        <Suspense fallback={<div className="viewer-loading">Loading…</div>}>
+          <Film design={design} />
+        </Suspense>
+      </div>
+      <div className="actions">
+        <button className="btn btn-primary btn-block" onClick={onSpecs}>See specs</button>
+        <button className="btn btn-ghost btn-block" onClick={onEdit}>Edit design</button>
+      </div>
+    </main>
+  );
+}
+
+// Every detail of the design, to download as an image and send.
+function Specs({ design, onEdit }: { design: Design; onEdit: () => void }) {
   const sheet = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const product = productOf(design);
@@ -431,11 +498,6 @@ function Review({ design, onEdit }: { design: Design; onEdit: () => void }) {
     side,
     pockets: side.slots.filter((s) => design.pockets[s.id]),
   }));
-  const placed = slotsOf(product).filter((r) => design.pockets[r.slot.id]);
-  // Background contrasts with the main panel and the leather most pockets are in.
-  const main = leatherOf(design, "main").name;
-  const pocketLeathers = placed.map((r) => leatherOf(design, r.slot.id).name);
-  const pocketLeather = pocketLeathers.sort((a, b) => pocketLeathers.filter((x) => x === b).length - pocketLeathers.filter((x) => x === a).length)[0] ?? main;
 
   const download = async () => {
     if (!sheet.current) return;
@@ -453,19 +515,13 @@ function Review({ design, onEdit }: { design: Design; onEdit: () => void }) {
 
   return (
     <main className="step">
-      <h1>Your wallet</h1>
-      <div className={`viewer ${previewBackground(design.finish, main, pocketLeather)}`}>
-        <Suspense fallback={<div className="viewer-loading">Loading…</div>}>
-          <Film design={design} />
-        </Suspense>
-      </div>
-
+      <h1>Specs</h1>
       <div className="sheet" ref={sheet}>
         <header>
           <span className="brand">{catalog.site.name}</span>
           <span>{date}</span>
         </header>
-        <h2>{product.label}</h2>
+        <h2>{product.variant ? `${product.variant} ${product.label.toLowerCase()}` : product.label}</h2>
         <div className="sheet-views">
           {product.views.map((view) => (
             <figure key={view.id}>
@@ -495,9 +551,9 @@ function Review({ design, onEdit }: { design: Design; onEdit: () => void }) {
             </div>
           ))}
           <div><dt>Finish</dt><dd>{finish(design.finish).label}</dd></div>
-          <div><dt>Corners</dt><dd>{cap(design.corner)}</dd></div>
+          {product.corners.length > 1 && <div><dt>Corners</dt><dd>{cap(design.corner)}</dd></div>}
           <div><dt>Thread</dt><dd>{design.thread}</dd></div>
-          <div><dt>Total pockets</dt><dd>{placed.length}</dd></div>
+          {product.pocket_types.length > 0 && <div><dt>Total pockets</dt><dd>{Object.keys(design.pockets).length}</dd></div>}
         </dl>
       </div>
 

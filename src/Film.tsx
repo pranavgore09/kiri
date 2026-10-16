@@ -1,11 +1,11 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import * as THREE from "three";
-import { catalog, finish, styleShape, thread, type Corner, type Rect, type SideDef, type View } from "./catalog";
+import { catalog, finish, styleShape, thread, type Corner, type PieceDef, type Rect, type SideDef, type View } from "./catalog";
 import { leatherOf, productOf, type Design } from "./design";
-import { buildShape, type Pt } from "./geometry";
-import { backToFront, viewsOf } from "./layout";
-import { Contact, EdgeBand, LeatherSurface, SHADOW_PAD, Slab, Stitch, STITCH, Studio, shadowTexture, thick } from "./leather3d";
+import { pieceShape, type Pt, type Shape } from "./geometry";
+import { placed, pocketShape, viewsOf } from "./layout";
+import { Contact, EdgeBand, LeatherSurface, SHADOW_PAD, Slab, Stitch, Studio, shadowTexture, thick } from "./leather3d";
 
 // A short, self-playing film of the customer's wallet, looping, with no controls at all.
 //   fold (bifold): closed → opens → the inside → a closer look at the left and right pockets →
@@ -101,30 +101,59 @@ function TableShadow({ x, w, h, z, opacity, mesh }: {
   );
 }
 
-const covers = (r: Rect, [x, y]: Pt) => x >= r[0] - 0.6 && x <= r[0] + r[2] + 0.6 && y >= r[1] - 0.6 && y <= r[1] + r[3] + 0.6;
-const placedOn = (design: Design, sides: SideDef[]) => sides.flatMap((s) => backToFront(s).filter((slot) => design.pockets[slot.id]));
+// Whether a point of the wallet's outer edge lies under a layer (a pocket or a piece): the point,
+// moved 1 mm in towards `centre`, inside the layer's outline.
+function covers(outline: Pt[], [x, y]: Pt, centre: Pt): boolean {
+  const l = Math.hypot(centre[0] - x, centre[1] - y) || 1;
+  const [px, py] = [x + (centre[0] - x) / l, y + (centre[1] - y) / l];
+  let inside = false;
+  for (let i = 0, j = outline.length - 1; i < outline.length; j = i++) {
+    const [xi, yi] = outline[i];
+    const [xj, yj] = outline[j];
+    if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+// One layer of leather lying on a panel: a piece (a bifold base, the wrap wallet's outer leather)
+// or a pocket. `lip` marks a mouth edge, finished before assembly, that keeps its own colour.
+interface Ply { id: string; shape: Shape; z: number; thickness: number; lip?: Rect; stitched: boolean }
 
-// Pockets stacked on a face, each with its soft contact shadow and stitching, from height `base`.
-function Pockets({ design, sides, base, edge }: { design: Design; sides: SideDef[]; base: number; edge: string }) {
+// The plies on a panel from height `from`: its pieces stacked in order, then each side's pockets
+// stacked on them, furthest back first.
+function pliesOf(design: Design, pieces: PieceDef[], sides: SideDef[], from: number): Ply[] {
   const corner = styleShape("corner", design.corner);
+  const plies: Ply[] = [];
+  let z = from;
+  for (const p of pieces) {
+    plies.push({ id: p.id, shape: pieceShape(p, corner), z, thickness: thick(p.id), lip: p.edge ? p.rect : undefined, stitched: p.stitch !== false });
+    z += thick(p.id);
+  }
+  for (const side of sides) {
+    placed(design, side).forEach((slot, i) => {
+      plies.push({ id: slot.id, shape: pocketShape(design, side, slot), z: z + i * OTHER, thickness: OTHER, lip: slot.rect, stitched: true });
+    });
+  }
+  return plies;
+}
+
+// How high the leather stands at a point of the outer edge: the top of the highest ply over it.
+const standsAt = (plies: Ply[], p: Pt, centre: Pt, floor: number) =>
+  plies.reduce((top, ply) => (covers(ply.shape.outline, p, centre) ? Math.max(top, ply.z + ply.thickness) : top), floor);
+
+// Plies drawn in 3D, each with its soft contact shadow and its stitching. Their outer edges take
+// `edge`, the colour the stack is burnished in.
+function Plies({ design, plies, edge }: { design: Design; plies: Ply[]; edge: string }) {
   const threadColor = thread(design.thread).color;
   const matte = !finish(design.finish).shine;
   return (
     <>
-      {sides.flatMap((s) => {
-        const mouth = styleShape("edge", design.edges[s.id]);
-        return backToFront(s).filter((slot) => design.pockets[slot.id]).map((slot, i) => {
-          const shape = buildShape({ rect: slot.rect, corners: slot.corners, mirror: slot.mirror, mouth: "top" }, corner, mouth, STITCH);
-          const z = base + i * OTHER;
-          return (
-            <group key={slot.id}>
-              <Contact outline={shape.outline} z={z} />
-              <Slab outline={shape.outline} thickness={OTHER} z={z} color={leatherOf(design, slot.id).color} matte={matte} edge={edge} lip={slot.rect} />
-              <Stitch shape={shape} z={z + OTHER + 0.05} color={threadColor} />
-            </group>
-          );
-        });
-      })}
+      {plies.map((ply) => (
+        <group key={ply.id}>
+          <Contact outline={ply.shape.outline} z={ply.z} />
+          <Slab outline={ply.shape.outline} thickness={ply.thickness} z={ply.z} color={leatherOf(design, ply.id).color} matte={matte} edge={edge} lip={ply.lip} />
+          {ply.stitched && <Stitch shape={ply.shape} z={ply.z + ply.thickness + 0.05} color={threadColor} />}
+        </group>
+      ))}
     </>
   );
 }
@@ -175,56 +204,40 @@ function foldLayout(design: Design): FoldLayout {
 }
 
 // One half of the bifold in flat (inside) coordinates: its part of the main panel underneath
-// (z from -T to 0), then the base and pockets stacked on top.
+// (z from -T to 0), then its base and pockets stacked on top.
 function Half({ design, layout, side }: { design: Design; layout: FoldLayout; side: "left" | "right" }) {
   const { W, H, spine, inside, outsideLines } = layout;
   const corner = styleShape("corner", design.corner);
   const threadColor = thread(design.thread).color;
   const matte = !finish(design.finish).shine;
   const T = thick("main");
-  const isMine = (r: Rect) => (r[0] + r[2] / 2 < W / 2) === (side === "left");
-  const main = inside.pieces.find((p) => p.id === "main")!;
-  const mainRect: Rect = side === "left" ? [0, 0, spine[0], H] : [spine[1], 0, W - spine[1], H];
-  const mainCorners = (main.corners ?? []).filter((c) => (side === "left" ? c === "tl" || c === "bl" : c === "tr" || c === "br"));
-  const pieces = inside.pieces.filter((p) => p.id !== "main" && isMine(p.rect));
-  const base = Math.max(0, ...pieces.map((p) => thick(p.id)));
-  const sides = (inside.sides ?? []).filter((s) => isMine(s.area));
   const burnished = leatherOf(design, "main").color; // stacked edges are burnished together
+  const isMine = (r: Rect) => (r[0] + r[2] / 2 < W / 2) === (side === "left");
 
-  // The burnished outer edge: how high the leather stands at each point of it (the frontmost
-  // pocket over that point, else the base, else just the main panel). The spine side is left
-  // open: it's the slip pocket's mouth.
-  const band = useMemo(() => {
-    const placed = placedOn(design, sides);
+  const { panel, plies, open } = useMemo(() => {
+    const main = inside.pieces.find((p) => p.id === "main")!;
+    const rect: Rect = side === "left" ? [0, 0, spine[0], H] : [spine[1], 0, W - spine[1], H];
+    const corners = (main.corners ?? []).filter((c) => (side === "left" ? c === "tl" || c === "bl" : c === "tr" || c === "br"));
+    const pieces = inside.pieces.filter((p) => p.id !== "main" && isMine(p.rect));
     const spineX = side === "left" ? spine[0] : spine[1];
     return {
-      outline: buildShape({ rect: mainRect, corners: mainCorners }, corner).outline,
-      top: (p: Pt) => {
-        const front = placed.reduce((n, slot, i) => (covers(slot.rect, p) ? i + 1 : n), 0);
-        if (front) return base + front * OTHER;
-        return pieces.some((q) => covers(q.rect, p)) ? base : 0;
-      },
+      panel: pieceShape({ rect, corners }, corner).outline,
+      plies: pliesOf(design, pieces, (inside.sides ?? []).filter((s) => isMine(s.area)), 0),
+      // The spine side of the burnished edge stays open: it's the slip pocket's mouth.
       open: (a: Pt, b: Pt) => Math.abs(a[0] - spineX) < 0.3 && Math.abs(b[0] - spineX) < 0.3,
     };
   }, [layout, design, side]);
+  const centre: Pt = [side === "left" ? spine[0] / 2 : (spine[1] + W) / 2, H / 2];
+  const top = useMemo(() => (p: Pt) => standsAt(plies, p, centre, 0), [plies]);
 
   return (
     <>
-      <EdgeBand outline={band.outline} bottom={-T} top={band.top} open={band.open} color={burnished} />
-      <Slab outline={band.outline} thickness={T} z={-T} color={burnished} matte={matte} edge={burnished} />
+      <EdgeBand outline={panel} bottom={-T} top={top} open={open} color={burnished} />
+      <Slab outline={panel} thickness={T} z={-T} color={burnished} matte={matte} edge={burnished} />
       {outsideLines.filter((l) => isMine(l.rect)).map((l, i) => (
-        <Stitch key={`o${i}`} shape={buildShape({ rect: l.rect, corners: l.corners, open: l.open }, corner, undefined, STITCH)} z={-T - 0.05} color={threadColor} />
+        <Stitch key={i} shape={pieceShape(l, corner)} z={-T - 0.05} color={threadColor} />
       ))}
-      {pieces.map((p) => (
-        <group key={p.id}>
-          <Contact outline={buildShape({ rect: p.rect, corners: p.corners }, corner).outline} z={0} />
-          <Slab outline={buildShape({ rect: p.rect, corners: p.corners }, corner).outline} thickness={thick(p.id)} z={0} color={leatherOf(design, p.id).color} matte={matte} edge={burnished} />
-          {p.stitch !== false && (
-            <Stitch shape={buildShape({ rect: p.rect, corners: p.corners, open: p.open }, corner, undefined, STITCH)} z={thick(p.id) + 0.05} color={threadColor} />
-          )}
-        </group>
-      ))}
-      <Pockets design={design} sides={sides} base={base} edge={burnished} />
+      <Plies design={design} plies={plies} edge={burnished} />
     </>
   );
 }
@@ -238,7 +251,7 @@ function FoldScene({ design, active }: { design: Design; active: MutableRefObjec
   // Closed, the halves are as far apart as their leather is thick: main panel, base and pockets.
   const sideThickness = (s: "left" | "right") => {
     const sides = (layout.inside.sides ?? []).filter((d) => (d.area[0] + d.area[2] / 2 < W / 2) === (s === "left"));
-    return T + OTHER * (1 + placedOn(design, sides).length);
+    return T + OTHER * (1 + sides.reduce((n, d) => n + placed(design, d).length, 0));
   };
   // Closed, the spine wraps round the stack in a half circle, so its outside is a smooth U.
   const closedLength = (Math.PI * (sideThickness("left") + sideThickness("right"))) / 2;
@@ -380,19 +393,22 @@ function TurnScene({ design, active }: { design: Design; active: MutableRefObjec
   const shadows = useRef<THREE.Group>(null);
   const tick = useClock(active, TURN_KEYS[TURN_KEYS.length - 1].t);
 
-  // The burnished outer edge runs from the back pockets' surface to the front pockets', point by
+  // Each face's plies on the main panel: its other pieces (the wrap wallet's outer leather), then
+  // its pockets. The burnished outer edge runs from the back's top ply to the front's, point by
   // point (a back-face point mirrors to W - x).
+  const pliesOn = (view?: View) =>
+    view ? pliesOf(design, view.pieces.filter((p) => p.id !== "main"), view.sides ?? [], T / 2) : [];
+  const frontPlies = useMemo(() => pliesOn(front), [views, design]);
+  const backPlies = useMemo(() => pliesOn(back), [views, design]);
   const band = useMemo(() => {
-    const frontPlaced = placedOn(design, front.sides ?? []);
-    const backPlaced = placedOn(design, back?.sides ?? []);
-    const stack = (placed: typeof frontPlaced, p: Pt) => placed.reduce((n, slot, i) => (covers(slot.rect, p) ? i + 1 : n), 0) * OTHER;
+    const centre: Pt = [W / 2, H / 2];
     return {
-      outline: buildShape({ rect: main.rect, corners: main.corners }, corner).outline,
-      top: (p: Pt) => T / 2 + stack(frontPlaced, p),
-      bottom: ([x, y]: Pt) => -T / 2 - stack(backPlaced, [W - x, y]),
-      depth: T / 2 + backPlaced.length * OTHER,
+      outline: pieceShape(main, corner).outline,
+      top: (p: Pt) => standsAt(frontPlies, p, centre, T / 2),
+      bottom: ([x, y]: Pt) => -standsAt(backPlies, [W - x, y], centre, T / 2),
+      depth: Math.max(T / 2, ...backPlies.map((ply) => ply.z + ply.thickness)),
     };
-  }, [views, design]);
+  }, [frontPlies, backPlies]);
 
   // Framing: while the holder turns, its corners swing towards and away from the camera, so the
   // whole view leaves room for its diagonal; the close-ups still show the whole pocket area.
@@ -412,12 +428,12 @@ function TurnScene({ design, active }: { design: Design; active: MutableRefObjec
     if (shadows.current) shadows.current.visible = Math.cos(path.turn) > 0.95;
   });
 
-  const face = (view: View) => (
+  const face = (view: View, plies: Ply[]) => (
     <>
-      {view.pieces.filter((p) => p.stitch !== false).map((p) => (
-        <Stitch key={p.id} shape={buildShape({ rect: p.rect, corners: p.corners, open: p.open }, corner, undefined, STITCH)} z={T / 2 + 0.05} color={threadColor} />
+      {view.pieces.filter((p) => p.id === "main" && p.stitch !== false).map((p) => (
+        <Stitch key={p.id} shape={pieceShape(p, corner)} z={T / 2 + 0.05} color={threadColor} />
       ))}
-      <Pockets design={design} sides={view.sides ?? []} base={T / 2} edge={burnished} />
+      <Plies design={design} plies={plies} edge={burnished} />
     </>
   );
 
@@ -425,11 +441,11 @@ function TurnScene({ design, active }: { design: Design; active: MutableRefObjec
     <group position={[-W / 2, H / 2, 0]}>
       <EdgeBand outline={band.outline} bottom={band.bottom} top={band.top} color={burnished} />
       <Slab outline={band.outline} thickness={T} z={-T / 2} color={leatherOf(design, "main").color} matte={matte} edge={burnished} />
-      {face(front)}
+      {face(front, frontPlies)}
       {/* The back, seen from behind: turned over about the vertical centre line. */}
       {back && (
         <group position={[W, 0, 0]} rotation={[0, Math.PI, 0]}>
-          {face(back)}
+          {face(back, backPlies)}
         </group>
       )}
       <group ref={shadows}>

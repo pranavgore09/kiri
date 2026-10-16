@@ -1,16 +1,15 @@
-import { catalog, type Len, type Rect, type SideDef, type Slot, type View } from "./catalog";
+import { catalog, styleShape, type Len, type Rect, type SideDef, type Slot, type View } from "./catalog";
 import { productOf, type Design } from "./design";
+import { buildShape, type Shape } from "./geometry";
 
 // Where every pocket sits, worked out from the card pocket maths in the catalog:
 // each pocket is X − Y tall, the card stops on its bottom stitch, and the stack steps by Z.
-
-const used = (d: Design, side: SideDef<Len>) => side.slots.filter((s) => d.pockets[s.id]).length;
 
 // A "fit" panel is just tall enough for its deepest bottom-stacked side.
 function fitHeight(d: Design): number {
   const { space, step, stitch } = catalog.card_pockets;
   const sides = productOf(d).views.flatMap((v) => v.sides ?? []).filter((s) => s.stack === "bottom");
-  const n = Math.max(1, ...sides.map((s) => used(d, s)));
+  const n = Math.max(1, ...sides.map((s) => placed(d, s).length));
   return stitch + space + (n - 1) * step + stitch;
 }
 
@@ -41,7 +40,7 @@ export function laidOut(d: Design, view: View<Len>): View {
     stitch_lines: view.stitch_lines?.map((l) => ({ ...l, rect: box(l.rect) })),
     sides: view.sides?.map((s) => {
       const side = { ...s, area: box(s.area) };
-      const n = Math.max(1, used(d, s));
+      const n = Math.max(1, placed(d, s).length);
       return { ...side, slots: s.slots.map((slot, k) => ({ ...slot, ...pocket(side, k, n) })) };
     }),
   };
@@ -50,4 +49,15 @@ export function laidOut(d: Design, view: View<Len>): View {
 export const viewsOf = (d: Design): View[] => productOf(d).views.map((v) => laidOut(d, v));
 
 // Slots in drawing order: the pocket furthest back first.
-export const backToFront = (side: SideDef<Len>): Slot[] => (side.stack === "bottom" ? [...side.slots].reverse() : side.slots);
+const backToFront = (side: SideDef<Len>): Slot[] => (side.stack === "bottom" ? [...side.slots].reverse() : side.slots);
+
+// The pockets placed on a side, furthest back first.
+export const placed = (d: Design, side: SideDef<Len>): Slot[] => backToFront(side).filter((slot) => d.pockets[slot.id]);
+
+// A pocket's shape: its slot, with the side's pocket edge along its mouth.
+export const pocketShape = (d: Design, side: SideDef<Len>, slot: Slot): Shape =>
+  buildShape(
+    { rect: slot.rect, corners: slot.corners, mirror: slot.mirror, mouth: "top" },
+    styleShape("corner", d.corner),
+    styleShape("edge", d.edges[side.id]),
+  );

@@ -11,7 +11,7 @@ site:
 #             A pocket or thread pairing that's out of stock is swapped for one in stock.
 #   leathers: `pocket` = default contrast colour for pockets, `thread` = default thread when this leather is on the main panel.
 #   selection: outline colour for a selected piece, by the two leathers just above and below it (order doesn't matter).
-#   preview_background: dark or light behind the 3D preview, by the main panel leather and the leather most pockets are in.
+#   preview_background: dark or light behind the film, by the main panel leather and the leather most pockets are in.
 #   Both tables are worked out in advance for contrast: `default` for every pair not listed under `except`.
 #   Screen colours are approximations of the supplier swatches.
 finishes:
@@ -23,70 +23,37 @@ finishes:
     default: Cognac
     in_stock: [Bone, Ortensia, Mosto]
     leathers:
-      - { name: Bone,         color: "#D8AC6A", pocket: Tabacco,  thread: Brown }
-      - { name: Grigio,       color: "#6B6A66", pocket: Bone,     thread: Yellow }
-      - { name: Cognac,       color: "#8A5532", pocket: Tabacco,  thread: Cream }
-      - { name: Siena,        color: "#8E4B30", pocket: Bone,     thread: Cream }
-      - { name: Olmo,         color: "#A65A2A", pocket: Tabacco,  thread: Cream }
-      - { name: Tabacco,      color: "#5A4036", pocket: Olmo,     thread: Cream }
-      - { name: Ortensia,     color: "#2E5560", pocket: Bone,     thread: Cream }
-      - { name: Navy,         color: "#1C2433", pocket: Cognac,   thread: Cream }
-      - { name: Bottiglia,    color: "#2E4230", pocket: Bone,     thread: Yellow }
-      - { name: Oliva,        color: "#5A5A26", pocket: Bone,     thread: Cream }
-      - { name: Napoli,       color: "#C08A1C", pocket: Tabacco,  thread: Brown }
-      - { name: R.Antico,     color: "#C77482", pocket: Bone,     thread: Brown }
-      - { name: Papavero,     color: "#B0201E", pocket: Bone,     thread: Cream }
-      - { name: Mosto,        color: "#5E1E28", pocket: Bone,     thread: Cream }
-      - { name: Coccinella,   color: "#8C1E22", pocket: Bone,     thread: Cream }
-      - { name: Prugna,       color: "#3E2A48", pocket: Bone,     thread: Cream }
+      - { name: Bone,       color: "#D8AC6A", pocket: Ortensia, thread: Brown }
+      - { name: Cognac,     color: "#8A5532", pocket: Bone,     thread: Cream }
+      - { name: Ortensia,   color: "#2E5560", pocket: Bone,     thread: Cream }
+      - { name: Mosto,      color: "#5E1E28", pocket: Bone,     thread: Cream }
+      - { name: R.Antico,   color: "#C77482", pocket: Bone,     thread: Brown }
+      - { name: Napoli,     color: "#C08A1C", pocket: Ortensia, thread: Brown }
     selection:
       default: "#FFFFFF"
       except:
       - [Bone, Bone, "#000000"]
-      - [Bone, Grigio, "#000000"]
       - [Bone, Cognac, "#000000"]
-      - [Bone, Siena, "#000000"]
-      - [Bone, Olmo, "#000000"]
-      - [Bone, Tabacco, "#000000"]
       - [Bone, Ortensia, "#000000"]
-      - [Bone, Oliva, "#000000"]
-      - [Bone, Napoli, "#000000"]
       - [Bone, R.Antico, "#000000"]
-      - [Bone, Papavero, "#000000"]
-      - [Bone, Coccinella, "#000000"]
-      - [Grigio, Napoli, "#000000"]
-      - [Grigio, R.Antico, "#000000"]
-      - [Cognac, Napoli, "#000000"]
+      - [Bone, Napoli, "#000000"]
       - [Cognac, R.Antico, "#000000"]
-      - [Siena, Napoli, "#000000"]
-      - [Olmo, Napoli, "#000000"]
-      - [Olmo, R.Antico, "#000000"]
-      - [Napoli, Napoli, "#000000"]
-      - [Napoli, R.Antico, "#000000"]
-      - [Napoli, Papavero, "#000000"]
+      - [Cognac, Napoli, "#000000"]
       - [R.Antico, R.Antico, "#000000"]
+      - [R.Antico, Napoli, "#000000"]
+      - [Napoli, Napoli, "#000000"]
     preview_background:
       default: light
       except:
       - [Bone, Bone, dark]
-      - [Bone, Grigio, dark]
       - [Bone, Cognac, dark]
-      - [Bone, Siena, dark]
-      - [Bone, Olmo, dark]
       - [Bone, Ortensia, dark]
-      - [Bone, Oliva, dark]
-      - [Bone, Napoli, dark]
       - [Bone, R.Antico, dark]
-      - [Bone, Papavero, dark]
-      - [Bone, Coccinella, dark]
-      - [Grigio, Napoli, dark]
-      - [Grigio, R.Antico, dark]
+      - [Bone, Napoli, dark]
       - [Cognac, Napoli, dark]
-      - [Olmo, Napoli, dark]
-      - [Olmo, R.Antico, dark]
-      - [Napoli, Napoli, dark]
-      - [Napoli, R.Antico, dark]
       - [R.Antico, R.Antico, dark]
+      - [R.Antico, Napoli, dark]
+      - [Napoli, Napoli, dark]
 
   - id: glossy
     label: Glossy
@@ -96,24 +63,20 @@ finishes:
     default: Cognac
     in_stock: [Bone]
     leathers:
-      - { name: Bone,      color: "#D8AC6A", pocket: Tabacco,  thread: Brown }
-      - { name: Cognac,    color: "#8A4B22", pocket: Tabacco,  thread: Cream }
-      - { name: Olmo,      color: "#B0602F", pocket: Tabacco,  thread: Cream }
-      - { name: Tabacco,   color: "#4E3424", pocket: Olmo,     thread: Cream }
-      - { name: Oliva,     color: "#4A4A2A", pocket: Bone,     thread: Cream }
+      - { name: Bone,     color: "#D8AC6A", pocket: Cognac,   thread: Brown }
+      - { name: Cognac,   color: "#8A4B22", pocket: Bone,     thread: Cream }
+      - { name: Oliva,    color: "#4A4A2A", pocket: Bone,     thread: Cream }
     selection:
       default: "#FFFFFF"
       except:
       - [Bone, Bone, "#000000"]
       - [Bone, Cognac, "#000000"]
-      - [Bone, Olmo, "#000000"]
       - [Bone, Oliva, "#000000"]
     preview_background:
       default: light
       except:
       - [Bone, Bone, dark]
       - [Bone, Cognac, dark]
-      - [Bone, Olmo, dark]
       - [Bone, Oliva, dark]
 
 # Thread colours (M50 superfine linen; supplier code in the comment, never shown).
@@ -150,12 +113,17 @@ stitching: { pitch: 3.38, thread_width: 0.45 }
 thickness: { main: 1.4, other: 1.0 }
 
 # Products.
-#   pocket_types: which pockets the customer can add (only top: card in from the top).
-#   preview: the review step's short film. fold = opens and closes on its spine (bifold);
+#   pocket_types: which pockets the customer can add (top: card in from the top). Empty: no pockets to place (wrap wallet).
+#   group / variant: products shown as one tab, with their variants to pick between (e.g. wrap wallet:
+#                    vertical or horizontal).
+#   preview: the short film shown before the specs. fold = opens and closes on its spine (bifold);
 #            turn = turns round to show both faces (card holder).
 #   views: what the customer sees (face: back = seen from behind, e.g. the outside of a bifold).
 #   pieces: leather panels; `corners` = which corners take the chosen corner style (tl tr br bl).
 #           stitch: false = the piece has no stitch line of its own.
+#           edge: the piece's top edge is cut to this drawing (styles/pocket-edge/), e.g. the wrap wallet's slope;
+#                 mirror flips it. spine: a folded side, never stitched (the stitch stops short of it).
+#           contrast: takes the pocket (contrast) colour, like a pocket does.
 #           open: a side left unstitched, so it works as a slip pocket (bifold bases, on the spine side).
 #           A height of `fit` grows with the pockets: stitch + X + Z per extra pocket + stitch.
 #   stitch_lines: extra stitch lines drawn on a view (e.g. outside of a bifold: around each half, not the spine).
@@ -195,8 +163,8 @@ products:
           - { id: left_base, label: Left inside, rect: [0, 0, 93, 115], corners: [tl, bl], open: right }
           - { id: right_base, label: Right inside, rect: [103, 0, 93, 115], corners: [tr, br], open: left }
         sides:
-          - { id: left, label: Left, max_pockets: 3, area: [0, 0, 93, 115], stack: top, corners: [bl] }
-          - { id: right, label: Right, max_pockets: 3, area: [103, 0, 93, 115], stack: top, corners: [br], mirror: true }
+          - { id: left, label: Left, max_pockets: 3, area: [0, 0, 93, 115], stack: top, corners: [tl, bl] }
+          - { id: right, label: Right, max_pockets: 3, area: [103, 0, 93, 115], stack: top, corners: [tr, br], mirror: true }
 
   cardholder:
     label: Card holder
@@ -224,3 +192,52 @@ products:
           - { id: main, label: Main panel, rect: [0, 0, 93, fit], corners: [tl, tr, br, bl] }
         sides:
           - { id: back, label: Back, max_pockets: 3, area: [0, 0, 93, fit], stack: bottom, corners: [bl, br] }
+
+  # Wrap wallet: two folded pieces, no pockets to place (see SPEC.md). Same on both faces.
+  wrap_vertical:
+    label: Wrap wallet
+    group: wrap
+    variant: Vertical
+    preview: turn
+    pocket_types: []
+    edges: []
+    corners: [rounded]
+    default: { corner: rounded, pockets: {} }
+    views:
+      - id: front
+        label: Front
+        size: [72, 97.5]
+        pieces:
+          - { id: main, label: Inner leather, rect: [0, 0, 72, 97.5], corners: [tl, tr, br, bl], stitch: false }
+          - { id: outer, label: Outer leather, rect: [0, 9.5, 72, 88], corners: [bl, br], edge: wrap-vertical, spine: left, contrast: true }
+      - id: back
+        label: Back
+        face: back
+        size: [72, 97.5]
+        pieces:
+          - { id: main, label: Inner leather, rect: [0, 0, 72, 97.5], corners: [tl, tr, br, bl], stitch: false }
+          - { id: outer, label: Outer leather, rect: [0, 9.5, 72, 88], corners: [bl, br], edge: wrap-vertical, mirror: true, spine: right, contrast: true }
+
+  wrap_horizontal:
+    label: Wrap wallet
+    group: wrap
+    variant: Horizontal
+    preview: turn
+    pocket_types: []
+    edges: []
+    corners: [rounded]
+    default: { corner: rounded, pockets: {} }
+    views:
+      - id: front
+        label: Front
+        size: [101, 67.5]
+        pieces:
+          - { id: main, label: Inner leather, rect: [0, 0, 101, 67.5], corners: [tl, tr, br, bl], stitch: false }
+          - { id: outer, label: Outer leather, rect: [0, 6, 101, 61.5], corners: [bl, br], edge: wrap-horizontal, spine: left, contrast: true }
+      - id: back
+        label: Back
+        face: back
+        size: [101, 67.5]
+        pieces:
+          - { id: main, label: Inner leather, rect: [0, 0, 101, 67.5], corners: [tl, tr, br, bl], stitch: false }
+          - { id: outer, label: Outer leather, rect: [0, 6, 101, 61.5], corners: [bl, br], edge: wrap-horizontal, mirror: true, spine: right, contrast: true }

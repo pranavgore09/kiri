@@ -10,6 +10,8 @@ export interface Design {
   thread: string;
   edges: Record<string, string>; // side id → pocket shape
   corner: string;
+  // The colours last used in each other finish, restored when the customer switches back.
+  remembered?: Record<string, { colors: Record<string, string>; thread: string }>;
 }
 
 export const productOf = (d: Design): Product => catalog.products[d.product];
@@ -20,8 +22,13 @@ export const leatherOf = (d: Design, id: string) => leather(d.colors[id], d.fini
 
 const bodyColor = (d: Design) => leatherOf(d, "main").name;
 
+// Pieces in the contrast (pocket) colour, e.g. the wrap wallet's outer piece.
+const contrastPieces = (product: Product) => piecesOf(product).filter((p) => p.contrast).map((p) => p.id);
+// Everything in the contrast colour: placed pockets and contrast pieces.
+export const accentIds = (d: Design) => [...Object.keys(d.pockets), ...contrastPieces(productOf(d))];
+
 function pocketColorFor(d: Design): string {
-  const existing = Object.keys(d.pockets).map((id) => d.colors[id]).find(Boolean);
+  const existing = accentIds(d).map((id) => d.colors[id]).find(Boolean);
   return existing ?? leather(bodyColor(d), d.finish).pocket;
 }
 
@@ -30,7 +37,7 @@ export function freshDesign(productId: string, body?: string, finishId = catalog
   const l = leather(body && inStock(finishId, body) ? body : defaultLeather(finishId), finishId);
   const colors: Record<string, string> = {};
   const pockets: Record<string, Entry> = {};
-  for (const p of piecesOf(product)) colors[p.id] = l.name;
+  for (const p of piecesOf(product)) colors[p.id] = p.contrast ? l.pocket : l.name;
   for (const side of sidesOf(product)) {
     for (const slot of side.slots.slice(0, product.default.pockets[side.id] ?? 0)) {
       pockets[slot.id] = product.pocket_types[0];
@@ -43,7 +50,7 @@ export function freshDesign(productId: string, body?: string, finishId = catalog
     pockets,
     colors,
     thread: l.thread,
-    edges: Object.fromEntries(sidesOf(product).map((s) => [s.id, product.default.edge])),
+    edges: Object.fromEntries(sidesOf(product).map((s) => [s.id, product.default.edge ?? product.edges[0]])),
     corner: product.default.corner,
   };
 }
@@ -53,13 +60,13 @@ export function switchProduct(d: Design, productId: string): Design {
   if (d.product === productId) return d;
   const next = freshDesign(productId, bodyColor(d), d.finish);
   const pocketColor = pocketColorFor(d);
-  for (const id of Object.keys(next.pockets)) next.colors[id] = pocketColor;
-  return { ...next, thread: d.thread };
+  for (const id of accentIds(next)) next.colors[id] = pocketColor;
+  return { ...next, thread: d.thread, remembered: d.remembered };
 }
 
-export function canPlace(d: Design, slotId: string, entry: Entry): boolean {
+function canPlace(d: Design, slotId: string, entry: Entry): boolean {
   const ref = slotsOf(productOf(d)).find((r) => r.slot.id === slotId);
-  if (!ref || !ref.slot.accepts.includes(entry)) return false;
+  if (!ref || !productOf(d).pocket_types.includes(entry)) return false;
   if (d.pockets[slotId]) return false;
   const used = ref.side.slots.filter((s) => d.pockets[s.id]).length;
   return ref.index === used && used < ref.side.max_pockets; // pockets fill a side in order
@@ -110,28 +117,24 @@ export function setEdge(d: Design, sideId: string, name: string): Design {
   return ok ? { ...d, edges: { ...d.edges, [sideId]: name } } : d;
 }
 
-// Other finish: pieces keep their colour where the new finish has it, the rest start from its default.
+// Other finish. The colours used in this one are remembered. Each piece then takes, in order:
+// what it had last time in the new finish, its current colour if the new finish has it in stock,
+// or the new finish's starting colours (its default leather, and that leather's pocket pairing).
 export function setFinish(d: Design, finishId: string): Design {
   const f = catalog.finishes.find((x) => x.id === finishId);
   if (!f || f.id === d.finish) return d;
-  const has = (name: string) => inStock(f.id, name);
-  const body = has(bodyColor(d)) ? bodyColor(d) : defaultLeather(f.id);
+  const pickable = (name?: string) => (name && inStock(f.id, name) ? name : undefined);
+  const before = d.remembered?.[f.id];
+  const body = pickable(before?.colors.main) ?? pickable(bodyColor(d)) ?? defaultLeather(f.id);
   const colors: Record<string, string> = {};
   for (const [id, name] of Object.entries(d.colors)) {
-    colors[id] = has(name) ? name : id === "main" || piecesOf(productOf(d)).some((p) => p.id === id) ? body : leather(body, f.id).pocket;
+    const fallback = accentIds(d).includes(id) ? leather(body, f.id).pocket : body;
+    colors[id] = pickable(before?.colors[id]) ?? pickable(name) ?? fallback;
   }
-  const thread = has(bodyColor(d)) ? d.thread : leather(body, f.id).thread;
-  return { ...d, finish: f.id, colors, thread };
-}
-
-// Body swatch: body pieces take the leather, pockets its contrast, thread its pair.
-export function setBody(d: Design, name: string): Design {
-  if (!inStock(d.finish, name)) return d;
-  const l = leather(name, d.finish);
-  const colors = { ...d.colors };
-  for (const p of piecesOf(productOf(d))) colors[p.id] = l.name;
-  for (const id of Object.keys(d.pockets)) colors[id] = l.pocket;
-  return { ...d, colors, thread: l.thread };
+  const keptThread = before ? before.thread : pickable(bodyColor(d)) && d.thread;
+  const thread = keptThread && threadInStock(keptThread) ? keptThread : leather(body, f.id).thread;
+  const remembered = { ...d.remembered, [d.finish]: { colors: d.colors, thread: d.thread } };
+  return { ...d, finish: f.id, colors, thread, remembered };
 }
 
 export function setPiece(d: Design, id: string, name: string): Design {
@@ -153,7 +156,7 @@ export function setThread(d: Design, name: string): Design {
 }
 
 // Re-check a whole design (e.g. one loaded from storage after the catalog changed).
-export function sanitize(input: unknown): Design | null {
+function sanitize(input: unknown): Design | null {
   const d = input as Design;
   if (!d || typeof d !== "object" || !catalog.products[d.product]) return null;
   const product = catalog.products[d.product];
@@ -165,7 +168,7 @@ export function sanitize(input: unknown): Design | null {
   // Keep each side's pockets in order, closing any gaps.
   const pockets: Record<string, Entry> = {};
   for (const side of sidesOf(product)) {
-    const kept = side.slots.filter((s) => d.pockets?.[s.id] && s.accepts.includes(d.pockets[s.id]));
+    const kept = side.slots.filter((s) => product.pocket_types.includes(d.pockets?.[s.id]));
     kept.forEach((from, k) => {
       const to = side.slots[k].id;
       pockets[to] = d.pockets[from.id];
@@ -182,6 +185,7 @@ export function sanitize(input: unknown): Design | null {
       sidesOf(product).map((s) => [s.id, product.edges.includes(d.edges?.[s.id]) ? d.edges[s.id] : base.edges[s.id]]),
     ),
     corner: product.corners.includes(d.corner) ? d.corner : base.corner,
+    remembered: d.remembered && typeof d.remembered === "object" ? d.remembered : undefined, // checked when used
   };
 }
 

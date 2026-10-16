@@ -1,4 +1,4 @@
-import { catalog, type Corner, type Rect, type Side, type StyleShape } from "./catalog";
+import { catalog, styleShape, type Corner, type PieceDef, type Rect, type Side, type StyleShape } from "./catalog";
 
 export type Pt = [number, number];
 
@@ -30,12 +30,13 @@ function sample(d: string, n = 32): Pt[] {
   return pts;
 }
 
-export interface ShapeSpec {
+interface ShapeSpec {
   rect: Rect;
   corners?: Corner[];
   mouth?: Side; // open side of a pocket, drawn with the edge style
   mirror?: boolean; // flip the edge style end to end
-  open?: Side; // a straight side left unstitched (a slip pocket's opening)
+  open?: Side | Side[]; // straight sides left unstitched (a slip pocket's opening)
+  spine?: Side; // a folded side: never stitched, and the stitch stops short of it
 }
 
 export interface Shape {
@@ -44,9 +45,12 @@ export interface Shape {
   stitchClosed: boolean;
 }
 
+// How far every stitch line sits in from the edge, mm.
+const STITCH_INSET = catalog.card_pockets.stitch;
+
 // Builds a clockwise outline (in SVG coords) for a panel or pocket.
 // `edge` is only needed when the shape has a mouth.
-export function buildShape(spec: ShapeSpec, corner: StyleShape, edge?: StyleShape, stitchInset = 3): Shape {
+export function buildShape(spec: ShapeSpec, corner: StyleShape, edge?: StyleShape, stitchInset = STITCH_INSET): Shape {
   const [x, y, W, H] = spec.rect;
   const styled = new Set(spec.corners ?? []);
   const c = sample(corner.d); // drawn in mm, from (0,s) up to (s,0)
@@ -72,12 +76,19 @@ export function buildShape(spec: ShapeSpec, corner: StyleShape, edge?: StyleShap
     }
   };
   const touching: Record<Corner, Side[]> = { tl: ["top", "left"], tr: ["top", "right"], br: ["right", "bottom"], bl: ["bottom", "left"] };
+  // A styled corner at an end of a top mouth sits as low as the mouth starts there, so the
+  // rounding meets the mouth whatever its shape (a wave or step doesn't start at the very top).
+  const mouthDrop = (k: Corner): number => {
+    if (spec.mouth !== "top" || !e.length) return 0;
+    const span = W - (styled.has("tl") ? s : 0) - (styled.has("tr") ? s : 0);
+    return (e[k === "tl" ? 0 : e.length - 1][1] / ew) * span;
+  };
   const cornerPts = (k: Corner): Pt[] => {
     const on = styled.has(k) && s > 0;
     if (!on && spec.mouth && touching[k].includes(spec.mouth)) return []; // the mouth's own end point replaces it
     switch (k) {
-      case "tl": return on ? c.map(([u, v]) => [x + u, y + v]) : [[x, y]];
-      case "tr": return on ? rev.map(([u, v]) => [x + W - u, y + v]) : [[x + W, y]];
+      case "tl": return on ? c.map(([u, v]) => [x + u, y + mouthDrop("tl") + v]) : [[x, y]];
+      case "tr": return on ? rev.map(([u, v]) => [x + W - u, y + mouthDrop("tr") + v]) : [[x + W, y]];
       case "br": return on ? c.map(([u, v]) => [x + W - u, y + H - v]) : [[x + W, y + H]];
       case "bl": return on ? rev.map(([u, v]) => [x + u, y + H - v]) : [[x, y + H]];
     }
@@ -121,35 +132,53 @@ export function buildShape(spec: ShapeSpec, corner: StyleShape, edge?: StyleShap
     const k = (stitchInset + OVER_EDGE) / l;
     return [end[0] + (end[0] - from[0]) * k, end[1] + (end[1] - from[1]) * k];
   };
-  const reinforce = (pts: Pt[]): Pt[] => {
-    const last = pts.length - 1;
-    return [over(pts[0], pts.slice(1)), ...pts, over(pts[last], pts.slice(0, last).reverse())];
-  };
-
-  if (spec.open) {
-    // Leave out the stitch along the open side: start just after it and go round to just before it.
-    const onSide = ([px, py]: Pt) =>
-      ({ top: Math.abs(py - y), bottom: Math.abs(py - (y + H)), left: Math.abs(px - x), right: Math.abs(px - (x + W)) })[spec.open!] < 1e-6;
-    const n = outline.length;
-    const gap = outline.findIndex((p, i) => onSide(p) && onSide(outline[(i + 1) % n]));
-    if (gap >= 0) {
-      const pts = Array.from({ length: n }, (_, i) => inset[(gap + 1 + i) % n]);
-      return { outline, stitch: reinforce(pts), stitchClosed: false };
-    }
-  }
-  if (!spec.mouth) return { outline, stitch: inset, stitchClosed: true };
-
-  // Open stitch line: from the end of the mouth, around the pocket, back to the start of the mouth.
+  // Leave the stitch out along the mouth, open sides and the spine: it runs from the end of that
+  // gap round to its start. Ends at a mouth or an opening are reinforced over the edge; at a
+  // spine (a fold, never stitched) the stitch simply stops before the corner.
   const n = outline.length;
-  const first = isMouth.findIndex((m, i) => m && !isMouth[(i - 1 + n) % n]);
-  let start = first;
-  while (isMouth[(start + 1) % n]) start = (start + 1) % n;
-  const stitch: Pt[] = [];
-  for (let i = start; ; i = (i + 1) % n) {
-    stitch.push(inset[i]);
-    if (i === first && stitch.length > 1) break;
+  const onSide = (side: Side, [px, py]: Pt) =>
+    ({ top: Math.abs(py - y), bottom: Math.abs(py - (y + H)), left: Math.abs(px - x), right: Math.abs(px - (x + W)) })[side] < 1e-6;
+  const opens = spec.open ? [spec.open].flat() : [];
+  const gap = (i: number): "mouth" | "open" | "spine" | null => {
+    const [a, b] = [outline[i], outline[(i + 1) % n]];
+    if (spec.mouth && isMouth[i] && isMouth[(i + 1) % n]) return "mouth";
+    if (opens.some((side) => onSide(side, a) && onSide(side, b))) return "open";
+    if (spec.spine && onSide(spec.spine, a) && onSide(spec.spine, b)) return "spine";
+    return null;
+  };
+  const gaps = outline.map((_, i) => gap(i));
+  if (gaps.every((g) => !g)) return { outline, stitch: inset, stitchClosed: true };
+
+  const first = gaps.findIndex((g, i) => !g && gaps[(i - 1 + n) % n]);
+  let pts: Pt[] = [inset[first]];
+  let i = first;
+  while (!gaps[i]) {
+    i = (i + 1) % n;
+    pts.push(inset[i]);
   }
-  return { outline, stitch: reinforce(stitch), stitchClosed: false };
+  const before = gaps[(first - 1 + n) % n];
+  const after = gaps[i];
+  // Short of a spine: cut the line where it comes within a corner's reach of it.
+  if (spec.spine) {
+    const reach = Math.max(s, stitchInset) + 1;
+    const dist = ([px, py]: Pt) => ({ top: py - y, bottom: y + H - py, left: px - x, right: x + W - px })[spec.spine!];
+    const cut = (line: Pt[]): Pt[] => {
+      const k = line.findIndex((p) => dist(p) <= reach);
+      if (k <= 0) return line;
+      const [a, b] = [line[k - 1], line[k]];
+      const t = (dist(a) - reach) / (dist(a) - dist(b));
+      return [...line.slice(0, k), [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]];
+    };
+    if (after === "spine") pts = cut(pts);
+    if (before === "spine") pts = cut([...pts].reverse()).reverse();
+  }
+  const last = pts.length - 1;
+  pts = [
+    ...(before === "spine" ? [] : [over(pts[0], pts.slice(1))]),
+    ...pts,
+    ...(after === "spine" ? [] : [over(pts[last], pts.slice(0, last).reverse())]),
+  ];
+  return { outline, stitch: pts, stitchClosed: false };
 }
 
 const OVER_EDGE = 1.5; // how far the stitch runs past a pocket's edge, mm
@@ -181,6 +210,15 @@ function offset(pts: Pt[], d: number): Pt[] {
     const m = d / Math.max(nx * n1[0] + ny * n1[1], 0.35);
     return [p[0] + sign * nx * m, p[1] + sign * ny * m];
   });
+}
+
+// A panel's shape (a piece, or a stitch line drawn like one): a plain rect with styled corners,
+// or (with `edge`) a piece whose top is cut to that drawing.
+type Panel = Pick<PieceDef, "rect" | "corners" | "open" | "edge" | "mirror" | "spine">;
+export function pieceShape(p: Panel, corner: StyleShape): Shape {
+  const edge = p.edge ? styleShape("edge", p.edge) : undefined;
+  const spec = { rect: p.rect, corners: p.corners, open: p.open, spine: p.spine, mirror: p.mirror, mouth: edge ? ("top" as const) : undefined };
+  return buildShape(spec, corner, edge);
 }
 
 // The same closed outline pushed outwards by d.
