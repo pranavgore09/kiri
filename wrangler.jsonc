@@ -1,0 +1,8 @@
+// Cloudflare Workers: serves the built site (npm run build → dist/) as static files. No server code.
+{
+  "name": "kiri",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist"
+  }
+}
