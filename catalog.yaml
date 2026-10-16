@@ -6,7 +6,7 @@ site:
   tagline: Handmade leather goods
 
 # Leather finishes. The customer picks one, then colours from that finish only.
-#   label/note: what the customer sees. default: starting leather (if it's out of stock, the first one in stock).
+#   label/note: what the customer sees. shine: drawn with a sheen (false = matte look). default: starting leather (if it's out of stock, the first one in stock).
 #   in_stock: the only leathers that can be picked; the rest show but can't be chosen. Leave out to offer all.
 #             A pocket or thread pairing that's out of stock is swapped for one in stock.
 #   leathers: `pocket` = default contrast colour for pockets, `thread` = default thread when this leather is on the main panel.
@@ -18,6 +18,7 @@ finishes:
   - id: matte
     label: Matte
     note: A soft, natural look with a quiet feel.
+    shine: false
     # Badalassi Carlo Pueblo (internal; colour names as the supplier lists them)
     default: Cognac
     in_stock: [Bone, Ortensia, Mosto]
@@ -90,6 +91,7 @@ finishes:
   - id: glossy
     label: Glossy
     note: A warm shine that deepens as you use it.
+    shine: true
     # Badalassi Carlo Minerva (internal; colour names as the supplier lists them)
     default: Cognac
     in_stock: [Bone]
@@ -148,7 +150,7 @@ stitching: { pitch: 3.38, thread_width: 0.45 }
 thickness: { main: 1.4, other: 1.0 }
 
 # Products.
-#   pocket_types: which pockets the customer can add (top = card in from the top).
+#   pocket_types: which pockets the customer can add (only top: card in from the top).
 #   views: what the customer sees (face: back = seen from behind, e.g. the outside of a bifold).
 #   pieces: leather panels; `corners` = which corners take the chosen corner style (tl tr br bl).
 #           stitch: false = the piece has no stitch line of its own.

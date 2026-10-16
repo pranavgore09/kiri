@@ -1,5 +1,5 @@
 import { useId, useMemo } from "react";
-import { catalog, selectionColor, styleShape, thread, type Len, type View } from "./catalog";
+import { catalog, finish, selectionColor, styleShape, thread, type Len, type View } from "./catalog";
 import { leatherOf, nextSlot, type Design } from "./design";
 import { buildShape, saddleStitches, toPath, type Shape } from "./geometry";
 import { backToFront, laidOut } from "./layout";
@@ -52,7 +52,7 @@ export default function WalletSvg({ design, view: raw, armed, selected, onSlot, 
   const corner = styleShape("corner", design.corner);
   const threadColor = thread(design.thread).color;
   const [W, H] = view.size;
-  const matte = design.finish === "matte"; // matte leather: no shine, softer edge highlight
+  const matte = !finish(design.finish).shine; // no sheen, softer edge highlight
   const colorOf = (id: string) => leatherOf(design, id).name;
 
   // The selection outline contrasts with the leathers just above and below the selected piece:
@@ -86,10 +86,7 @@ export default function WalletSvg({ design, view: raw, armed, selected, onSlot, 
         const edge = styleShape("edge", design.edges[side.id]);
         return backToFront(side).map((slot) => ({
           slot,
-          shapes: {
-            top: buildShape({ rect: slot.rect, corners: slot.corners, mirror: slot.mirror, mouth: "top" }, corner, edge, STITCH),
-            side: buildShape({ rect: slot.rect, corners: slot.corners, mirror: slot.mirror, mouth: slot.mouth ?? "right" }, corner, edge, STITCH),
-          },
+          shape: buildShape({ rect: slot.rect, corners: slot.corners, mirror: slot.mirror, mouth: "top" }, corner, edge, STITCH),
         }));
       }),
     [view, corner, design.edges],
@@ -124,14 +121,12 @@ export default function WalletSvg({ design, view: raw, armed, selected, onSlot, 
         <Stitch key={i} shape={shape} color={threadColor} />
       ))}
 
-      {slots.map(({ slot, shapes }) => {
-        const entry = design.pockets[slot.id];
-        if (!entry) return null;
-        const [x, , w] = slot.rect;
+      {slots.map(({ slot, shape }) => {
+        if (!design.pockets[slot.id]) return null;
         return (
           <g key={slot.id}>
             <Leather
-              shape={shapes[entry]}
+              shape={shape}
               color={leatherOf(design, slot.id).color}
               threadColor={threadColor}
               sheen={sheen}

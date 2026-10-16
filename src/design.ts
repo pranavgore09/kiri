@@ -60,9 +60,7 @@ export function switchProduct(d: Design, productId: string): Design {
 export function canPlace(d: Design, slotId: string, entry: Entry): boolean {
   const ref = slotsOf(productOf(d)).find((r) => r.slot.id === slotId);
   if (!ref || !ref.slot.accepts.includes(entry)) return false;
-  const current = d.pockets[slotId];
-  if (current === entry) return false;
-  if (current) return true; // swapping type, count unchanged
+  if (d.pockets[slotId]) return false;
   const used = ref.side.slots.filter((s) => d.pockets[s.id]).length;
   return ref.index === used && used < ref.side.max_pockets; // pockets fill a side in order
 }
@@ -79,7 +77,7 @@ export function place(d: Design, slotId: string, entry: Entry): Design {
   return {
     ...d,
     pockets: { ...d.pockets, [slotId]: entry },
-    colors: { ...d.colors, [slotId]: d.colors[slotId] ?? pocketColorFor(d) },
+    colors: { ...d.colors, [slotId]: pocketColorFor(d) },
   };
 }
 
@@ -95,7 +93,10 @@ export function removePocket(d: Design, slotId: string): Design {
     if (next && pockets[next]) {
       pockets[ids[k]] = pockets[next];
       colors[ids[k]] = colors[next];
-    } else delete pockets[ids[k]];
+    } else {
+      delete pockets[ids[k]];
+      delete colors[ids[k]];
+    }
   }
   return { ...d, pockets, colors };
 }
@@ -129,7 +130,7 @@ export function setBody(d: Design, name: string): Design {
   const l = leather(name, d.finish);
   const colors = { ...d.colors };
   for (const p of piecesOf(productOf(d))) colors[p.id] = l.name;
-  for (const { slot } of slotsOf(productOf(d))) colors[slot.id] = l.pocket;
+  for (const id of Object.keys(d.pockets)) colors[id] = l.pocket;
   return { ...d, colors, thread: l.thread };
 }
 
@@ -144,7 +145,6 @@ export function allOneColour(d: Design): Design {
   const body = bodyColor(d);
   const colors = { ...d.colors };
   for (const id of Object.keys(colors)) colors[id] = body;
-  for (const { slot } of slotsOf(productOf(d))) colors[slot.id] = body;
   return { ...d, colors };
 }
 
@@ -160,8 +160,8 @@ export function sanitize(input: unknown): Design | null {
   const f = finish(d.finish);
   const base = freshDesign(d.product, undefined, f.id);
   const valid = (n: unknown) => typeof n === "string" && inStock(f.id, n);
-  const colors = { ...base.colors };
-  for (const p of piecesOf(product)) if (valid(d.colors?.[p.id])) colors[p.id] = d.colors[p.id];
+  const colors: Record<string, string> = {};
+  for (const p of piecesOf(product)) colors[p.id] = valid(d.colors?.[p.id]) ? d.colors[p.id] : base.colors[p.id];
   // Keep each side's pockets in order, closing any gaps.
   const pockets: Record<string, Entry> = {};
   for (const side of sidesOf(product)) {

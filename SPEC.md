@@ -13,7 +13,7 @@
 ## Editor
 - Tap-only on all devices, mobile-first. On desktop, a centred phone-width column.
 - Tray shows one pocket picture (top-entry: card goes in from the top), no labels. Pockets on a side fill in order; tap the side to add the next one. Removing one closes the gap.
-  - Side-entry pockets were tried and dropped for both products. The catalog still supports them (`pocket_types`, `accepts`, `mouth`) if needed later.
+  - Side-entry pockets were tried and dropped for both products, and removed from the code.
 - Tap a pocket picture, then tap a side to add it. Tap a placed pocket → ✕ to remove.
 - Pieces:
   - Vertical bifold: main panel (shows as a strip at the fold inside), left base, right base, pockets. No stitching on the spine, inside or outside. Each base is left unstitched on its spine side (left base: right edge, right base: left edge) so it works as a slip pocket for a card or cash; the stitch is reinforced over the edge at both ends of that opening. The outside stitching follows the same path.

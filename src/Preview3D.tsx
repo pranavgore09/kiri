@@ -2,7 +2,7 @@ import { Bounds, Line, OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { useMemo } from "react";
 import * as THREE from "three";
-import { catalog, styleShape, thread, type View } from "./catalog";
+import { catalog, finish, styleShape, thread, type View } from "./catalog";
 import { leatherOf, type Design } from "./design";
 import { buildShape, saddleStitches, type Pt, type Shape } from "./geometry";
 import { backToFront, viewsOf } from "./layout";
@@ -45,6 +45,7 @@ function Slab({ outline, thickness, z, color, matte }: { outline: Pt[]; thicknes
 function ViewGroup({ design, view, pieces }: { design: Design; view: View; pieces: View["pieces"] }) {
   const corner = styleShape("corner", design.corner);
   const threadColor = thread(design.thread).color;
+  const matte = !finish(design.finish).shine;
   const [W] = view.size;
   // Pieces lie from z = 0; pockets stack on top of them. A view's back face is turned over,
   // so its z = 0 is the far side of the piece the other view drew (card holder main panel).
@@ -59,7 +60,7 @@ function ViewGroup({ design, view, pieces }: { design: Design; view: View; piece
           key={p.id}
           outline={buildShape({ rect: p.rect, corners: p.corners }, corner).outline}
           thickness={thick(p.id)}
-          matte={design.finish === "matte"}
+          matte={matte}
           z={0}
           color={leatherOf(design, p.id).color}
         />
@@ -73,14 +74,12 @@ function ViewGroup({ design, view, pieces }: { design: Design; view: View; piece
       {(view.sides ?? []).flatMap((side) => {
         const edge = styleShape("edge", design.edges[side.id]);
         return backToFront(side).filter((slot) => design.pockets[slot.id]).map((slot, i) => {
-          const entry = design.pockets[slot.id];
-          const mouth = entry === "top" ? "top" : slot.mouth ?? "right";
-          const shape = buildShape({ rect: slot.rect, corners: slot.corners, mirror: slot.mirror, mouth }, corner, edge, STITCH);
+          const shape = buildShape({ rect: slot.rect, corners: slot.corners, mirror: slot.mirror, mouth: "top" }, corner, edge, STITCH);
           const z = base + i * catalog.thickness.other;
           const top = z + catalog.thickness.other + 0.05;
           return (
             <group key={slot.id}>
-              <Slab outline={shape.outline} thickness={catalog.thickness.other} z={z} color={leatherOf(design, slot.id).color} matte={design.finish === "matte"} />
+              <Slab outline={shape.outline} thickness={catalog.thickness.other} z={z} color={leatherOf(design, slot.id).color} matte={matte} />
               <Stitch shape={shape} z={top} color={threadColor} />
             </group>
           );

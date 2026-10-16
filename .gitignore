@@ -1,3 +1,13 @@
 node_modules
 dist
 *.tsbuildinfo
+
+# Reference photos and screenshots are never part of the site. Style drawings are SVG.
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.heic
+*.bmp
+*.pdf

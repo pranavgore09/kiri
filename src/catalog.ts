@@ -4,7 +4,7 @@ import raw from "../catalog.yaml?raw";
 export type Rect = [number, number, number, number];
 export type Corner = "tl" | "tr" | "br" | "bl";
 export type Side = "top" | "right" | "bottom" | "left";
-export type Entry = "top" | "side";
+export type Entry = "top"; // card goes in from the top
 
 export interface Leather { name: string; color: string; pocket: string; thread: string }
 interface PairTable<T> { default: T; except: [string, string, T][] }
@@ -12,6 +12,7 @@ export interface Finish {
   id: string;
   label: string;
   note: string;
+  shine: boolean; // false = drawn matte
   default: string;
   in_stock?: string[]; // only these can be picked; left out = all
   leathers: Leather[];
@@ -24,7 +25,7 @@ export type Len = number | "fit";
 type Box<H> = [number, number, number, H];
 
 // A pocket position. Its rect is worked out by layout.ts from the card pocket maths.
-export interface Slot { id: string; rect: Rect; accepts: Entry[]; mouth?: Side; corners?: Corner[]; mirror?: boolean }
+export interface Slot { id: string; rect: Rect; accepts: Entry[]; corners?: Corner[]; mirror?: boolean }
 export interface SideDef<H = number> {
   id: string;
   label: string;

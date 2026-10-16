@@ -140,14 +140,10 @@ function ProductSwitch({ design, onChange }: { design: Design; onChange: (d: Des
   );
 }
 
-function PocketIcon({ entry }: { entry: Entry }) {
+function PocketIcon() {
   return (
     <svg viewBox="0 0 60 44" className="pocket-icon" aria-hidden="true">
-      {entry === "top" ? (
-        <rect x="14" y="2" width="32" height="22" rx="2" className="card" />
-      ) : (
-        <rect x="30" y="14" width="28" height="20" rx="2" className="card" />
-      )}
+      <rect x="14" y="2" width="32" height="22" rx="2" className="card" />
       <rect x="6" y="12" width="44" height="30" rx="3" className="pocket" />
       <rect x="9" y="15" width="38" height="24" rx="1.5" className="stitch" />
     </svg>
@@ -312,11 +308,11 @@ function Pockets({ design, onChange, onNext }: { design: Design; onChange: (d: D
             <button
               key={entry}
               className={`tile ${armed === entry ? "on" : ""}`}
-              aria-label={entry === "top" ? "Cards go in from the top" : "Cards slide in from the side"}
+              aria-label="Add a pocket"
               aria-pressed={armed === entry}
               onClick={() => { setSelected(null); setArmed(armed === entry ? null : entry); }}
             >
-              <PocketIcon entry={entry} />
+              <PocketIcon />
             </button>
           ))}
         </div>
@@ -493,7 +489,7 @@ function Review({ design, onEdit }: { design: Design; onEdit: () => void }) {
                 {describe(
                   pockets.map(
                     (s) =>
-                      `${cap(design.edges[side.id])}${design.pockets[s.id] === "side" ? " side-entry" : ""} · ${leatherOf(design, s.id).name}`,
+                      `${cap(design.edges[side.id])} · ${leatherOf(design, s.id).name}`,
                   ),
                 )}
               </dd>
