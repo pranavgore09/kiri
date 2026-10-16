@@ -1,0 +1,220 @@
+# Everything the designer offers lives here. Edit freely.
+# Sizes are in millimetres. Rects are [x, y, width, height], measured from the top-left.
+
+site:
+  name: Ira Kiri        # working name, see BRAND.md
+  tagline: Handmade leather goods
+
+# Leather finishes. The customer picks one, then colours from that finish only.
+#   label/note: what the customer sees. default: starting leather (if it's out of stock, the first one in stock).
+#   in_stock: the only leathers that can be picked; the rest show but can't be chosen. Leave out to offer all.
+#             A pocket or thread pairing that's out of stock is swapped for one in stock.
+#   leathers: `pocket` = default contrast colour for pockets, `thread` = default thread when this leather is on the main panel.
+#   selection: outline colour for a selected piece, by the two leathers just above and below it (order doesn't matter).
+#   preview_background: dark or light behind the 3D preview, by the main panel leather and the leather most pockets are in.
+#   Both tables are worked out in advance for contrast: `default` for every pair not listed under `except`.
+#   Screen colours are approximations of the supplier swatches.
+finishes:
+  - id: matte
+    label: Matte
+    note: A soft, natural look with a quiet feel.
+    # Badalassi Carlo Pueblo (internal; colour names as the supplier lists them)
+    default: Cognac
+    in_stock: [Bone, Ortensia, Mosto]
+    leathers:
+      - { name: Bone,         color: "#D8AC6A", pocket: Tabacco,  thread: Brown }
+      - { name: Grigio,       color: "#6B6A66", pocket: Bone,     thread: Yellow }
+      - { name: Cognac,       color: "#8A5532", pocket: Tabacco,  thread: Cream }
+      - { name: Siena,        color: "#8E4B30", pocket: Bone,     thread: Cream }
+      - { name: Olmo,         color: "#A65A2A", pocket: Tabacco,  thread: Cream }
+      - { name: Tabacco,      color: "#5A4036", pocket: Olmo,     thread: Cream }
+      - { name: Ortensia,     color: "#2E5560", pocket: Bone,     thread: Cream }
+      - { name: Navy,         color: "#1C2433", pocket: Cognac,   thread: Cream }
+      - { name: Bottiglia,    color: "#2E4230", pocket: Bone,     thread: Yellow }
+      - { name: Oliva,        color: "#5A5A26", pocket: Bone,     thread: Cream }
+      - { name: Napoli,       color: "#C08A1C", pocket: Tabacco,  thread: Brown }
+      - { name: R.Antico,     color: "#C77482", pocket: Bone,     thread: Brown }
+      - { name: Papavero,     color: "#B0201E", pocket: Bone,     thread: Cream }
+      - { name: Mosto,        color: "#5E1E28", pocket: Bone,     thread: Cream }
+      - { name: Coccinella,   color: "#8C1E22", pocket: Bone,     thread: Cream }
+      - { name: Prugna,       color: "#3E2A48", pocket: Bone,     thread: Cream }
+    selection:
+      default: "#FFFFFF"
+      except:
+      - [Bone, Bone, "#000000"]
+      - [Bone, Grigio, "#000000"]
+      - [Bone, Cognac, "#000000"]
+      - [Bone, Siena, "#000000"]
+      - [Bone, Olmo, "#000000"]
+      - [Bone, Tabacco, "#000000"]
+      - [Bone, Ortensia, "#000000"]
+      - [Bone, Oliva, "#000000"]
+      - [Bone, Napoli, "#000000"]
+      - [Bone, R.Antico, "#000000"]
+      - [Bone, Papavero, "#000000"]
+      - [Bone, Coccinella, "#000000"]
+      - [Grigio, Napoli, "#000000"]
+      - [Grigio, R.Antico, "#000000"]
+      - [Cognac, Napoli, "#000000"]
+      - [Cognac, R.Antico, "#000000"]
+      - [Siena, Napoli, "#000000"]
+      - [Olmo, Napoli, "#000000"]
+      - [Olmo, R.Antico, "#000000"]
+      - [Napoli, Napoli, "#000000"]
+      - [Napoli, R.Antico, "#000000"]
+      - [Napoli, Papavero, "#000000"]
+      - [R.Antico, R.Antico, "#000000"]
+    preview_background:
+      default: light
+      except:
+      - [Bone, Bone, dark]
+      - [Bone, Grigio, dark]
+      - [Bone, Cognac, dark]
+      - [Bone, Siena, dark]
+      - [Bone, Olmo, dark]
+      - [Bone, Ortensia, dark]
+      - [Bone, Oliva, dark]
+      - [Bone, Napoli, dark]
+      - [Bone, R.Antico, dark]
+      - [Bone, Papavero, dark]
+      - [Bone, Coccinella, dark]
+      - [Grigio, Napoli, dark]
+      - [Grigio, R.Antico, dark]
+      - [Cognac, Napoli, dark]
+      - [Olmo, Napoli, dark]
+      - [Olmo, R.Antico, dark]
+      - [Napoli, Napoli, dark]
+      - [Napoli, R.Antico, dark]
+      - [R.Antico, R.Antico, dark]
+
+  - id: glossy
+    label: Glossy
+    note: A warm shine that deepens as you use it.
+    # Badalassi Carlo Minerva (internal; colour names as the supplier lists them)
+    default: Cognac
+    in_stock: [Bone]
+    leathers:
+      - { name: Bone,      color: "#D8AC6A", pocket: Tabacco,  thread: Brown }
+      - { name: Cognac,    color: "#8A4B22", pocket: Tabacco,  thread: Cream }
+      - { name: Olmo,      color: "#B0602F", pocket: Tabacco,  thread: Cream }
+      - { name: Tabacco,   color: "#4E3424", pocket: Olmo,     thread: Cream }
+      - { name: Oliva,     color: "#4A4A2A", pocket: Bone,     thread: Cream }
+    selection:
+      default: "#FFFFFF"
+      except:
+      - [Bone, Bone, "#000000"]
+      - [Bone, Cognac, "#000000"]
+      - [Bone, Olmo, "#000000"]
+      - [Bone, Oliva, "#000000"]
+    preview_background:
+      default: light
+      except:
+      - [Bone, Bone, dark]
+      - [Bone, Cognac, dark]
+      - [Bone, Olmo, dark]
+      - [Bone, Oliva, dark]
+
+# Thread colours (M50 superfine linen; supplier code in the comment, never shown).
+threads:
+  - { name: Cream,      color: "#DDD1C9" }   # MS006
+  - { name: Brown,      color: "#924944" }   # MS003
+  - { name: Yellow,     color: "#EFAA50" }   # MS016
+  - { name: Navy Blue,  color: "#30375D" }   # MS019
+  - { name: Red,        color: "#C92E57" }   # MS009
+  - { name: Orange,     color: "#E55C41" }   # MS014
+# Only these threads can be picked; the rest show but can't be chosen. Leave out to offer all.
+threads_in_stock: [Cream, Brown]
+
+# Styles. Each name needs a drawing at styles/<folder>/<name>.svg
+#   pocket-edge: the pocket opening, drawn left to right across a 100-wide viewBox.
+#   corner: the top-left corner in mm, drawn from (0, size) up to (size, 0).
+styles:
+  edge: { folder: pocket-edge, label: Pocket shape }
+  corner: { folder: corner, label: Corners }
+
+# Card pocket maths, in mm. Every pocket is the same height (X − Y); the stack steps by Z.
+#   space (X): card height with ease (card is 54). The card stops on the pocket's bottom stitch.
+#   show (Y): the pocket is X − Y tall, so the top of the card shows above it.
+#   step (Z): each pocket behind is stitched this much higher.
+#   stitch: stitch line distance from every edge.
+# Pocket width: card 85.6 + 3.4 ease = 89 between stitch lines, + 2 × 2 stitch = 93.
+card_pockets: { space: 56, show: 10, step: 7, stitch: 2 }
+
+# Saddle stitching, drawing only (never shown as text).
+#   pitch: mm between stitches (3.38 French pricking iron). thread_width: mm, M50 thread.
+stitching: { pitch: 3.38, thread_width: 0.45 }
+
+# Leather thickness in mm, 3D preview only: the main panel, and every other piece (bases, pockets).
+thickness: { main: 1.4, other: 1.0 }
+
+# Products.
+#   pocket_types: which pockets the customer can add (top = card in from the top).
+#   views: what the customer sees (face: back = seen from behind, e.g. the outside of a bifold).
+#   pieces: leather panels; `corners` = which corners take the chosen corner style (tl tr br bl).
+#           stitch: false = the piece has no stitch line of its own.
+#           open: a side left unstitched, so it works as a slip pocket (bifold bases, on the spine side).
+#           A height of `fit` grows with the pockets: stitch + X + Z per extra pocket + stitch.
+#   stitch_lines: extra stitch lines drawn on a view (e.g. outside of a bifold: around each half, not the spine).
+#   sides: where pockets stack, with a pocket limit. area = the panel the pockets sit on.
+#          stack: bottom = front pocket stitched at the bottom edge, each pocket behind Z higher.
+#          stack: top = back pocket's card reaches the top stitch, each pocket in front Z lower;
+#                       the front pocket runs down to the bottom edge (pocket bottom stitches stay hidden).
+#          mirror: flip the pocket shape (right-hand side). corners: pocket corners that take the corner style.
+#   edges: pocket shapes on offer; the customer picks one per side. default.edge = starting shape for every side.
+#   default.pockets: how many pockets each side starts with.
+products:
+  bifold:
+    label: Vertical bifold
+    pocket_types: [top]
+    edges: [straight, notch, slant, wave, step-reverse]
+    corners: [rounded, square]
+    default:
+      edge: slant
+      corner: rounded
+      pockets: { left: 2, right: 2 }
+    views:
+      - id: outside
+        label: Outside
+        face: back
+        size: [196, 115]
+        pieces:
+          - { id: main, label: Main panel, rect: [0, 0, 196, 115], corners: [tl, tr, br, bl], stitch: false }
+        stitch_lines:
+          - { rect: [0, 0, 93, 115], corners: [tl, bl], open: right }
+          - { rect: [103, 0, 93, 115], corners: [tr, br], open: left }
+      - id: inside
+        label: Inside
+        size: [196, 115]
+        pieces:
+          - { id: main, label: Main panel, rect: [0, 0, 196, 115], corners: [tl, tr, br, bl], stitch: false }
+          - { id: left_base, label: Left inside, rect: [0, 0, 93, 115], corners: [tl, bl], open: right }
+          - { id: right_base, label: Right inside, rect: [103, 0, 93, 115], corners: [tr, br], open: left }
+        sides:
+          - { id: left, label: Left, max_pockets: 3, area: [0, 0, 93, 115], stack: top, corners: [bl] }
+          - { id: right, label: Right, max_pockets: 3, area: [103, 0, 93, 115], stack: top, corners: [br], mirror: true }
+
+  cardholder:
+    label: Card holder
+    pocket_types: [top]
+    edges: [straight, notch, wave, step, step-reverse]
+    corners: [rounded, square]
+    default:
+      edge: notch
+      corner: rounded
+      pockets: { front: 2, back: 2 }
+    views:
+      - id: front
+        label: Front
+        size: [93, fit]
+        pieces:
+          - { id: main, label: Main panel, rect: [0, 0, 93, fit], corners: [tl, tr, br, bl] }
+        sides:
+          - { id: front, label: Front, max_pockets: 3, area: [0, 0, 93, fit], stack: bottom, corners: [bl, br] }
+      - id: back
+        label: Back
+        face: back
+        size: [93, fit]
+        pieces:
+          - { id: main, label: Main panel, rect: [0, 0, 93, fit], corners: [tl, tr, br, bl] }
+        sides:
+          - { id: back, label: Back, max_pockets: 3, area: [0, 0, 93, fit], stack: bottom, corners: [bl, br] }
