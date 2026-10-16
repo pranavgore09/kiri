@@ -57,7 +57,10 @@
 - Customer picks from small pictures (no names/jargon). Only styles allowed for that product are offered. Default per product set in the catalog.
 
 ## Review
-- 3D preview of the wallet open flat (never folded), plain slabs in the chosen colours, drag to rotate.
+- The review shows a short, self-playing, looping film of the customer's own design: no controls at all (no drag, zoom, speed or seek). Plays at 25 frames a second, pauses when off screen or the tab is hidden, and stops after two loops on its opening view (reload to watch again).
+  - Vertical bifold (catalog `preview: fold`, about 14 s): closed → opens on its spine → the inside → close-ups of the left and right pockets → closes as the camera swings to the other side → a full turn round the closed wallet.
+  - Card holder (`preview: turn`, about 12 s): the front → its pockets up close → over the edge to the back → its pockets up close → round to the front.
+  - Look: leather grain, faint tonal mottling, a soft sheen (Matte) or light finish (Glossy); the spine bends into a smooth U sized to the leather stack; the outer edge is one solid, rounded band in the main panel's colour (burnished), pocket mouths in their own colour; soft contact shadows, cast shadows and a table shadow; a gliding camera with a long lens.
 - Fixed leather thickness (catalog `thickness`, never shown): main panel 1.4 mm; everything else (bases, pockets) 1 mm. Pockets stack layer on layer.
 - Background is dark or light from a fixed table in the catalog (`preview_background`), keyed by the main panel leather and the leather most pockets are in. Light for every pair except Tan with Tan, which stays dark.
 
@@ -83,11 +86,10 @@
 ## Stack
 - React + Vite + TypeScript.
 - SVG for the 2D editor.
-- react-three-fiber for the 3D preview.
+- react-three-fiber for the review films.
 - html-to-image for the PNG.
 - Static hosting on Cloudflare Pages at my subdomain. No backend.
 
 ## Later (not v1)
 - Captcha (Cloudflare Turnstile), email delivery, pricing.
 - Sending the design to me directly (WhatsApp share / `wa.me` link).
-- Folded 3D view, realistic texture.

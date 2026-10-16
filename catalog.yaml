@@ -151,6 +151,8 @@ thickness: { main: 1.4, other: 1.0 }
 
 # Products.
 #   pocket_types: which pockets the customer can add (only top: card in from the top).
+#   preview: the review step's short film. fold = opens and closes on its spine (bifold);
+#            turn = turns round to show both faces (card holder).
 #   views: what the customer sees (face: back = seen from behind, e.g. the outside of a bifold).
 #   pieces: leather panels; `corners` = which corners take the chosen corner style (tl tr br bl).
 #           stitch: false = the piece has no stitch line of its own.
@@ -167,6 +169,7 @@ thickness: { main: 1.4, other: 1.0 }
 products:
   bifold:
     label: Vertical bifold
+    preview: fold          # review film: opens, pockets up close, closes, turns round
     pocket_types: [top]
     edges: [straight, notch, slant, wave, step-reverse]
     corners: [rounded, square]
@@ -197,6 +200,7 @@ products:
 
   cardholder:
     label: Card holder
+    preview: turn          # review film: front, its pockets, over to the back, its pockets, round again
     pocket_types: [top]
     edges: [straight, notch, wave, step, step-reverse]
     corners: [rounded, square]

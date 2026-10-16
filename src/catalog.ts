@@ -49,6 +49,7 @@ export interface View<H = number> {
 }
 export interface Product {
   label: string;
+  preview: "fold" | "turn"; // the review step's film
   pocket_types: Entry[];
   edges: string[];
   corners: string[];

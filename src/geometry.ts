@@ -183,6 +183,9 @@ function offset(pts: Pt[], d: number): Pt[] {
   });
 }
 
+// The same closed outline pushed outwards by d.
+export const grow = (pts: Pt[], d: number): Pt[] => offset(pts, -d);
+
 export function toPath(pts: Pt[], closed = true): string {
   const body = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(2)} ${y.toFixed(2)}`).join(" ");
   return closed ? `${body} Z` : body;

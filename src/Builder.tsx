@@ -22,7 +22,7 @@ import {
 import { buildShape, toPath } from "./geometry";
 import WalletSvg from "./WalletSvg";
 
-const Preview3D = lazy(() => import("./Preview3D"));
+const Film = lazy(() => import("./Film"));
 
 const STEPS = ["Start", "Pockets", "Colours", "Review"];
 
@@ -455,10 +455,9 @@ function Review({ design, onEdit }: { design: Design; onEdit: () => void }) {
     <main className="step">
       <h1>Your wallet</h1>
       <div className={`viewer ${previewBackground(design.finish, main, pocketLeather)}`}>
-        <Suspense fallback={<div className="viewer-loading">Loading 3D…</div>}>
-          <Preview3D design={design} />
+        <Suspense fallback={<div className="viewer-loading">Loading…</div>}>
+          <Film design={design} />
         </Suspense>
-        <span className="viewer-hint">Drag to turn</span>
       </div>
 
       <div className="sheet" ref={sheet}>
