@@ -22,7 +22,7 @@ function App() {
     return () => removeEventListener("hashchange", onHash);
   }, []);
   const [route, product] = hash.slice(2).split("/");
-  return route === "design" ? <Builder start={product} /> : <Home />;
+  return route === "design" ? <Builder key={product} start={product} /> : <Home />;
 }
 
 createRoot(document.getElementById("root")!).render(

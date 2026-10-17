@@ -122,14 +122,27 @@ export function buildShape(spec: ShapeSpec, corner: StyleShape, edge?: StyleShap
     outline.pop();
     isMouth[0] = isMouth[0] || isMouth.pop()!;
   }
+  // Drop points in the middle of a straight run (a square corner's drawing is two straight lines
+  // of points): moved inwards for the stitch line, those near a corner would overshoot it.
+  for (let i = outline.length - 1; i >= 0 && outline.length > 3; i--) {
+    const n = outline.length;
+    const [a, b, c] = [outline[(i - 1 + n) % n], outline[i], outline[(i + 1) % n]];
+    const cross = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+    const ahead = (b[0] - a[0]) * (c[0] - b[0]) + (b[1] - a[1]) * (c[1] - b[1]) > 0;
+    const sameKind = isMouth[i] === isMouth[(i - 1 + n) % n] && isMouth[i] === isMouth[(i + 1) % n];
+    if (Math.abs(cross) < 1e-6 && ahead && sameKind) {
+      outline.splice(i, 1);
+      isMouth.splice(i, 1);
+    }
+  }
 
   const inset = offset(outline, stitchInset);
   // At each end of an opening the stitch carries on over the edge onto the leather behind,
   // the way a pocket is reinforced where it opens.
-  const over = (end: Pt, along: Pt[]): Pt => {
+  const over = (end: Pt, along: Pt[], length = stitchInset + OVER_EDGE): Pt => {
     const from = along.find((p) => Math.hypot(p[0] - end[0], p[1] - end[1]) > 0.5) ?? end;
     const l = Math.hypot(end[0] - from[0], end[1] - from[1]) || 1;
-    const k = (stitchInset + OVER_EDGE) / l;
+    const k = length / l;
     return [end[0] + (end[0] - from[0]) * k, end[1] + (end[1] - from[1]) * k];
   };
   // Leave the stitch out along the mouth, open sides and the spine: it runs from the end of that
@@ -172,11 +185,25 @@ export function buildShape(spec: ShapeSpec, corner: StyleShape, edge?: StyleShap
     if (after === "spine") pts = cut(pts);
     if (before === "spine") pts = cut([...pts].reverse()).reverse();
   }
+  // At a rounded corner beside a top mouth the stitch doesn't follow the rounding round onto the
+  // mouth: it leaves it and runs straight up the side, over the mouth's edge.
+  let [startOver, endOver] = [stitchInset + OVER_EDGE, stitchInset + OVER_EDGE];
+  const straighten = (line: Pt[], k: Corner): [Pt[], number] => {
+    const top = y + mouthDrop(k);
+    const kept = [...line];
+    while (kept.length > 2 && kept[kept.length - 1][1] < top + s - 0.5) kept.pop();
+    return [kept, kept[kept.length - 1][1] - top + OVER_EDGE];
+  };
+  if (spec.mouth === "top" && after === "mouth" && styled.has("tl")) [pts, endOver] = straighten(pts, "tl");
+  if (spec.mouth === "top" && before === "mouth" && styled.has("tr")) {
+    const [line, length] = straighten([...pts].reverse(), "tr");
+    [pts, startOver] = [line.reverse(), length];
+  }
   const last = pts.length - 1;
   pts = [
-    ...(before === "spine" ? [] : [over(pts[0], pts.slice(1))]),
+    ...(before === "spine" ? [] : [over(pts[0], pts.slice(1), startOver)]),
     ...pts,
-    ...(after === "spine" ? [] : [over(pts[last], pts.slice(0, last).reverse())]),
+    ...(after === "spine" ? [] : [over(pts[last], pts.slice(0, last).reverse(), endOver)]),
   ];
   return { outline, stitch: pts, stitchClosed: false };
 }
@@ -231,8 +258,39 @@ export function toPath(pts: Pt[], closed = true): string {
 
 // Saddle stitch: evenly spaced short stitches, each leaning at the same angle to the line,
 // like the slanted holes of a diamond stitching iron. Returns one [start, end] pair per stitch.
+// At a sharp corner the line is split, and each straight run is spaced on its own, the way a
+// maker walks the iron into a corner; the stitch either side of the corner lies straight along
+// its line, so the two meet in a clean L instead of crossing.
 export function saddleStitches(pts: Pt[], closed: boolean, pitch = catalog.stitching.pitch, length = pitch * 0.72, lean = 0.45): [Pt, Pt][] {
-  const path = closed && pts.length ? [...pts, pts[0]] : pts;
+  const n = pts.length;
+  const turn = (i: number) => {
+    const [a, b, c] = [pts[(i - 1 + n) % n], pts[i], pts[(i + 1) % n]];
+    const [ux, uy, vx, vy] = [b[0] - a[0], b[1] - a[1], c[0] - b[0], c[1] - b[1]];
+    const l = Math.hypot(ux, uy) * Math.hypot(vx, vy);
+    return l ? Math.acos(Math.max(-1, Math.min(1, (ux * vx + uy * vy) / l))) : 0;
+  };
+  const sharp = pts.map((_, i) => (closed || (i > 0 && i < n - 1)) && turn(i) > SHARP);
+  if (!sharp.some(Boolean)) return stitchRun(closed && n ? [...pts, pts[0]] : pts, pitch, length, lean);
+  // Runs from corner to corner (a closed line starts at its first corner).
+  const first = closed ? sharp.indexOf(true) : 0;
+  const order = closed ? [...pts.slice(first), ...pts.slice(0, first), pts[first]] : pts;
+  const isCorner = closed ? [...sharp.slice(first), ...sharp.slice(0, first), true] : sharp;
+  const out: [Pt, Pt][] = [];
+  let run: Pt[] = [order[0]];
+  for (let i = 1; i < order.length; i++) {
+    run.push(order[i]);
+    if (isCorner[i] || i === order.length - 1) {
+      out.push(...stitchRun(run, pitch, length, lean, true));
+      run = [order[i]];
+    }
+  }
+  return out;
+}
+
+const SHARP = 0.6; // radians: a turn this sharp is a corner (a rounded corner's steps are gentler)
+
+// Stitches spaced evenly along one run of the line; `cornered`: the run ends at corners.
+function stitchRun(path: Pt[], pitch: number, length: number, lean: number, cornered = false): [Pt, Pt][] {
   const segs: { a: Pt; b: Pt; len: number }[] = [];
   let total = 0;
   for (let i = 1; i < path.length; i++) {
@@ -240,6 +298,7 @@ export function saddleStitches(pts: Pt[], closed: boolean, pitch = catalog.stitc
     if (len > 1e-6) segs.push({ a: path[i - 1], b: path[i], len });
     total += len;
   }
+  if (!segs.length || (cornered && total < pitch * 0.6)) return []; // a sliver between two corners holds no stitch
   const n = Math.max(1, Math.round(total / pitch));
   const step = total / n;
   const out: [Pt, Pt][] = [];
@@ -252,8 +311,10 @@ export function saddleStitches(pts: Pt[], closed: boolean, pitch = catalog.stitc
     const t = (at - before) / len;
     const [cx, cy] = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
     const [ux, uy] = [(b[0] - a[0]) / len, (b[1] - a[1]) / len];
-    const [dx, dy] = [Math.cos(lean) * ux - Math.sin(lean) * uy, Math.sin(lean) * ux + Math.cos(lean) * uy];
-    const h = Math.min(length, step * 0.8) / 2;
+    const end = cornered && (k === 0 || k === n - 1);
+    const a2 = end ? 0 : lean;
+    const [dx, dy] = [Math.cos(a2) * ux - Math.sin(a2) * uy, Math.sin(a2) * ux + Math.cos(a2) * uy];
+    const h = (Math.min(length, step * 0.8) / 2) * (end ? 0.7 : 1);
     out.push([[cx - dx * h, cy - dy * h], [cx + dx * h, cy + dy * h]]);
   }
   return out;

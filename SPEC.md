@@ -6,7 +6,7 @@
 - Vertical bifold, card holder and wrap wallet (vertical or horizontal). Pure leather, no hardware.
 
 ## Entry
-- First step: one picture per wallet (vertical bifold, card holder, wrap wallet), no words. Tap one to start.
+- First step: one picture per wallet (vertical bifold, card holder, wrap wallet), no words, each in its own two-tone pairing (bifold Bottiglia/Napoli, card holder Prugna/R.Antico, wrap Bone inner / Mosto outer). Tap one to start in those colours; the home page shows and links the same three.
 - Customer can switch product later: pockets reset to that product's default layout, colours are kept.
 
 ## Editor
@@ -43,12 +43,12 @@
 ## Colours
 - First choice on the colours step: **Matte** ("A soft, natural look with a quiet feel.", the default) or **Glossy** ("A warm shine that deepens as you use it."). Each offers its own leathers; the supplier leather behind each is internal only (catalog comment).
   - Kept short on purpose: the colours in stock, one generic, one or two fancy.
-  - Matte = Badalassi Carlo Pueblo: Bone, Cognac, Ortensia, Mosto, R.Antico, Napoli.
+  - Matte = Badalassi Carlo Pueblo: Bone, Cognac, Ortensia, Mosto, R.Antico, Napoli, Bottiglia, Prugna. All in stock.
   - Glossy = Badalassi Carlo Minerva: Bone, Cognac, Oliva.
   - Switching finish keeps every colour the new finish also has; the rest start from its default and that leather's pocket colour. Each finish remembers its colours: switching back restores what the customer had picked there.
   - Matte is drawn without shine (2D and 3D). The summary lists the finish.
 - Stock (catalog `in_stock` per finish, `threads_in_stock`): colours not in stock still show, faded and struck through, but can't be picked. No message.
-  - Now in stock: Matte Bone, Ortensia, Mosto; Glossy Bone; threads Cream, Brown.
+  - Now in stock: every Matte leather; Glossy Bone; threads Cream, Brown.
   - Starting colours and pocket/thread pairings that are out of stock are swapped for one in stock (e.g. a fresh design starts Bone with Ortensia pockets and Brown thread).
 - Starts two-tone: body in one leather, pockets (and the wrap wallet's outer leather) in its paired contrast colour.
 - Tap a part: the finish's leathers appear in a column on each side of the wallet. Pick one and that part takes it; the columns go away. Tapping the part again, or off the wallet, closes them with no change. Thread stays as a row below.

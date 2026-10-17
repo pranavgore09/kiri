@@ -21,7 +21,6 @@ finishes:
     shine: false
     # Badalassi Carlo Pueblo (internal; colour names as the supplier lists them)
     default: Cognac
-    in_stock: [Bone, Ortensia, Mosto]
     leathers:
       - { name: Bone,       color: "#D8AC6A", pocket: Ortensia, thread: Brown }
       - { name: Cognac,     color: "#8A5532", pocket: Bone,     thread: Cream }
@@ -29,6 +28,8 @@ finishes:
       - { name: Mosto,      color: "#5E1E28", pocket: Bone,     thread: Cream }
       - { name: R.Antico,   color: "#C77482", pocket: Bone,     thread: Brown }
       - { name: Napoli,     color: "#C08A1C", pocket: Ortensia, thread: Brown }
+      - { name: Bottiglia,  color: "#2E4230", pocket: Napoli,   thread: Cream }
+      - { name: Prugna,     color: "#3E2A48", pocket: R.Antico, thread: Cream }
     selection:
       default: "#FFFFFF"
       except:
@@ -142,7 +143,7 @@ products:
     edges: [straight, notch, slant, wave, step-reverse]
     corners: [rounded, square]
     default:
-      edge: slant
+      edge: step-reverse
       corner: rounded
       pockets: { left: 2, right: 2 }
     views:

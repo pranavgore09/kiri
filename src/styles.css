@@ -231,7 +231,7 @@ em { font-style: italic; color: var(--accent); }
 .stage { position: relative; overflow: hidden; touch-action: pan-y; transition: padding 0.22s ease; }
 /* Colour picker: the wallet shrinks a little and colours sit in a column on each side. */
 .stage.picking {
-  min-height: 200px; /* room for a column of colours, whatever the wallet's shape */
+  min-height: 236px; /* room for four colours a side, whatever the wallet's shape */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -246,7 +246,7 @@ em { font-style: italic; color: var(--accent); }
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   animation: picker-in 0.2s ease;
 }
 .picker.left { left: 4px; }

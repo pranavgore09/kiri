@@ -1,4 +1,4 @@
-import { STARTERS } from "./Builder";
+import { STARTERS, starterDesign } from "./Builder";
 import { catalog } from "./catalog";
 import { freshDesign } from "./design";
 import WalletSvg from "./WalletSvg";
@@ -29,10 +29,10 @@ export default function Home() {
       </section>
 
       <section className="range">
-        {STARTERS.map(({ product, body, label }) => (
-          <a key={product} href={`#/design/${product}`} className="range-item">
-            <WalletSvg design={freshDesign(product, body)} view={front(product)} />
-            <span>{label}</span>
+        {STARTERS.map((starter) => (
+          <a key={starter.product} href={`#/design/${starter.product}`} className="range-item">
+            <WalletSvg design={starterDesign(starter)} view={front(starter.product)} />
+            <span>{starter.label}</span>
           </a>
         ))}
       </section>
