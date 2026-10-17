@@ -26,8 +26,14 @@ const Film = lazy(() => import("./Film"));
 
 const STEPS = ["Start", "Pockets", "Colours", "Film", "Specs"];
 
-export default function Builder() {
-  const initial = useMemo(load, []);
+// `start`: a product picked on the home page (#/design/<product>), to begin with.
+export default function Builder({ start }: { start?: string }) {
+  const initial = useMemo(() => {
+    const saved = load();
+    if (!start || !catalog.products[start]) return saved;
+    history.replaceState(null, "", "#/design"); // a reload keeps the design, not the link
+    return { design: saved.design ? switchProduct(saved.design, start) : freshDesign(start), step: 1 };
+  }, []);
   const [design, setDesign] = useState<Design | null>(initial.design);
   const [step, setStep] = useState(initial.step);
 
@@ -79,8 +85,8 @@ export default function Builder() {
   );
 }
 
-// The first step: one picture per wallet, no words; tap one to start with it.
-const STARTERS: { product: string; body: string; label: string }[] = [
+// The first step: one picture per wallet, no words; tap one to start with it. (Also on the home page.)
+export const STARTERS: { product: string; body: string; label: string }[] = [
   { product: "bifold", body: "Bone", label: "Vertical bifold" },
   { product: "cardholder", body: "Ortensia", label: "Card holder" },
   { product: "wrap_vertical", body: "Mosto", label: "Wrap wallet" },

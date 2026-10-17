@@ -1,13 +1,13 @@
+import { STARTERS } from "./Builder";
 import { catalog } from "./catalog";
 import { freshDesign } from "./design";
 import WalletSvg from "./WalletSvg";
 
-const showcase = freshDesign("bifold");
-const showcaseView = catalog.products.bifold.views.find((v) => v.id === "inside")!;
-const card = freshDesign("cardholder", "Ortensia");
+const front = (product: string) => catalog.products[product].views.find((v) => v.face !== "back")!;
+const hero = freshDesign("bifold", "Mosto");
 
+// Less is more: one line, one wallet, the three wallets to start from, one line on the craft.
 export default function Home() {
-  const year = new Date().getFullYear();
   return (
     <div className="home">
       <header className="nav">
@@ -16,66 +16,34 @@ export default function Home() {
       </header>
 
       <section className="hero">
-        <p className="eyebrow">Handmade · Made to order</p>
+        <p className="eyebrow">Handmade leather</p>
         <h1>
-          A wallet,
+          Made by hand.
           <br />
-          <em>made for you.</em>
+          <em>Made for you.</em>
         </h1>
-        <p className="lede">
-          Cut, stitched and finished by hand. Choose the pockets, the leather and the thread. I make the rest.
-        </p>
-        <a href="#/design" className="btn btn-primary">Design your wallet</a>
-
+        <a href="#/design" className="btn btn-line">Design yours</a>
         <div className="hero-art" aria-hidden="true">
-          <div className="art art-main">
-            <WalletSvg design={showcase} view={showcaseView} />
-          </div>
-          <div className="art art-small">
-            <WalletSvg design={card} view={catalog.products.cardholder.views[0]} />
-          </div>
+          <WalletSvg design={hero} view={front("bifold")} />
         </div>
       </section>
 
+      <section className="range">
+        {STARTERS.map(({ product, body, label }) => (
+          <a key={product} href={`#/design/${product}`} className="range-item">
+            <WalletSvg design={freshDesign(product, body)} view={front(product)} />
+            <span>{label}</span>
+          </a>
+        ))}
+      </section>
+
       <section className="craft">
-        <h2>The craft</h2>
-        <ol className="points">
-          <li>
-            <span>01</span>
-            <h3>Cut by hand</h3>
-            <p>Every piece is cut from a whole hide, one wallet at a time.</p>
-          </li>
-          <li>
-            <span>02</span>
-            <h3>Stitched by hand</h3>
-            <p>Two needles, one thread, pulled tight stitch by stitch.</p>
-          </li>
-          <li>
-            <span>03</span>
-            <h3>Finished by hand</h3>
-            <p>Edges sanded and polished until they shine.</p>
-          </li>
-        </ol>
-      </section>
-
-      <section className="how">
-        <h2>How it works</h2>
-        <ol className="steps">
-          <li><strong>Design it here.</strong> Pockets, leather, thread — a few taps.</li>
-          <li><strong>Save the picture.</strong> Send it to me.</li>
-          <li><strong>I make it.</strong> By hand, just for you.</li>
-        </ol>
-      </section>
-
-      <section className="cta">
-        <p className="eyebrow">Bifold, card holder or wrap</p>
-        <h2>Pick yours.</h2>
-        <a href="#/design" className="btn btn-primary">Start designing</a>
+        <p>Cut, stitched and burnished by hand, one wallet at a time.</p>
       </section>
 
       <footer className="footer">
         <span className="brand">{catalog.site.name}</span>
-        <span>{catalog.site.tagline} · © {year}</span>
+        <span>© {new Date().getFullYear()}</span>
       </footer>
     </div>
   );
