@@ -1,12 +1,8 @@
-import { STARTERS, starterDesign } from "./Builder";
-import { catalog } from "./catalog";
-import { freshDesign } from "./design";
+import { catalog, frontView } from "./catalog";
+import { freshDesign, starterDesign, starters } from "./design";
 import WalletSvg from "./WalletSvg";
 
-const front = (product: string) => catalog.products[product].views.find((v) => v.face !== "back")!;
-const hero = freshDesign("bifold", "Mosto");
-
-// Less is more: one line, one wallet, the three wallets to start from, one line on the craft.
+// Less is more: one line, one wallet, the wallets to start from, one line on the craft.
 export default function Home() {
   return (
     <div className="home">
@@ -24,15 +20,15 @@ export default function Home() {
         </h1>
         <a href="#/design" className="btn btn-line">Design yours</a>
         <div className="hero-art" aria-hidden="true">
-          <WalletSvg design={hero} view={front("bifold")} />
+          <WalletSvg design={freshDesign("bifold", "Mosto")} view={frontView(catalog.products.bifold)} />
         </div>
       </section>
 
       <section className="range">
-        {STARTERS.map((starter) => (
-          <a key={starter.product} href={`#/design/${starter.product}`} className="range-item">
-            <WalletSvg design={starterDesign(starter)} view={front(starter.product)} />
-            <span>{starter.label}</span>
+        {starters.map((id) => (
+          <a key={id} href={`#/design/${id}`} className="range-item">
+            <WalletSvg design={starterDesign(id)} view={frontView(catalog.products[id])} />
+            <span>{catalog.products[id].label}</span>
           </a>
         ))}
       </section>

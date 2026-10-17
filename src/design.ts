@@ -55,6 +55,17 @@ export function freshDesign(productId: string, body?: string, finishId = catalog
   };
 }
 
+// The products offered on the first step (and the home page), in catalog order.
+export const starters = Object.keys(catalog.products).filter((id) => catalog.products[id].starter);
+
+// A new design of this product, in its starter's leathers and thread where it has them.
+export function starterDesign(productId: string): Design {
+  const s = catalog.products[productId].starter;
+  const d = freshDesign(productId, s?.body);
+  if (s && inStock(d.finish, s.accent)) for (const id of accentIds(d)) d.colors[id] = s.accent;
+  return s?.thread ? setThread(d, s.thread) : d;
+}
+
 // New product layout, same colours.
 export function switchProduct(d: Design, productId: string): Design {
   if (d.product === productId) return d;

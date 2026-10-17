@@ -105,3 +105,10 @@
 ## Later (not v1)
 - Captcha (Cloudflare Turnstile), email delivery, pricing.
 - Sending the design to me directly (WhatsApp share / `wa.me` link).
+
+## Working on it
+- `npm run dev`: the site locally.
+- `npm test`: checks catalog.yaml (names, drawings, defaults, contrast tables) and the design rules. Also runs in `npm run build`, so a broken catalog can't be deployed.
+- `npm run smoke`: walks every wallet from the first step to the specs page in Chrome.
+- `npm run contrast`: after adding a leather or changing a colour, rewrites the selection-outline and film-background tables in catalog.yaml.
+- A mistake in catalog.yaml shows in the browser as a list of what's wrong.

@@ -61,6 +61,7 @@ export interface View<H = number> {
 export interface Product {
   label: string;
   preview: "fold" | "turn"; // the film shown before the specs
+  starter?: { body: string; accent: string; thread?: string }; // first-step picture and starting colours
   group?: string; // products shown as one choice…
   variant?: string; // …and picked between by this name
   pocket_types: Entry[];
@@ -71,7 +72,7 @@ export interface Product {
 }
 interface CardPockets { space: number; show: number; step: number; stitch: number }
 export type StyleKind = "edge" | "corner";
-interface Catalog {
+export interface Catalog {
   site: { name: string; tagline: string };
   finishes: Finish[];
   threads: Thread[];
@@ -104,12 +105,15 @@ export interface StyleShape { d: string; w: number; h: number }
 
 const shapes = new Map<string, StyleShape>();
 
+const stylePath = (kind: StyleKind, name: string) => `../styles/${catalog.styles[kind].folder}/${name}.svg`;
+export const hasStyle = (kind: StyleKind, name: string) => stylePath(kind, name) in svgFiles;
+
 export function styleShape(kind: StyleKind, name: string): StyleShape {
   const key = `${kind}/${name}`;
   const hit = shapes.get(key);
   if (hit) return hit;
-  const file = svgFiles[`../styles/${catalog.styles[kind].folder}/${name}.svg`];
-  if (!file) throw new Error(`Missing drawing: styles/${catalog.styles[kind].folder}/${name}.svg`);
+  const file = svgFiles[stylePath(kind, name)];
+  if (!file) throw new Error(`Missing drawing: ${stylePath(kind, name).slice(3)}`);
   const box = /viewBox="([^"]+)"/.exec(file)![1].trim().split(/[\s,]+/).map(Number);
   const d = /<path[^>]*\sd="([^"]+)"/.exec(file)![1];
   const shape = { d, w: box[2], h: box[3] };
@@ -155,6 +159,9 @@ export function slotsOf(product: Product): SlotRef[] {
     (view.sides ?? []).flatMap((side) => side.slots.map((slot, index) => ({ slot, side, view, index }))),
   );
 }
+
+// The view a product is shown by on its own (the front, not the back).
+export const frontView = (product: Product): View<Len> => product.views.find((v) => v.face !== "back") ?? product.views[0];
 
 export function piecesOf(product: Product): PieceDef<Len>[] {
   const seen = new Map<string, PieceDef<Len>>();

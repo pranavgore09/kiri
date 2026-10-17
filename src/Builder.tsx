@@ -1,10 +1,9 @@
 import { toPng } from "html-to-image";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { catalog, finish, inStock, piecesOf, previewBackground, styleShape, threadInStock, type Entry, type Len, type StyleKind, type View } from "./catalog";
+import { catalog, finish, frontView, inStock, piecesOf, previewBackground, styleShape, threadInStock, type Entry, type Len, type StyleKind, type View } from "./catalog";
 import {
   accentIds,
   allOneColour,
-  freshDesign,
   leatherOf,
   load,
   place,
@@ -16,6 +15,8 @@ import {
   setFinish,
   setPiece,
   setThread,
+  starterDesign,
+  starters,
   switchProduct,
   type Design,
 } from "./design";
@@ -32,7 +33,7 @@ export default function Builder({ start }: { start?: string }) {
     const saved = load();
     if (!start || !catalog.products[start]) return saved;
     history.replaceState(null, "", "#/design"); // a reload keeps the design, not the link
-    return { design: saved.design ? switchProduct(saved.design, start) : newDesign(start), step: 1 };
+    return { design: saved.design ? switchProduct(saved.design, start) : starterDesign(start), step: 1 };
   }, []);
   const [design, setDesign] = useState<Design | null>(initial.design);
   const [step, setStep] = useState(initial.step);
@@ -45,7 +46,7 @@ export default function Builder({ start }: { start?: string }) {
   }, [step]);
 
   const choose = (productId: string) => {
-    setDesign(design ? switchProduct(design, productId) : newDesign(productId));
+    setDesign(design ? switchProduct(design, productId) : starterDesign(productId));
     setStep(1);
   };
   const startOver = () => {
@@ -85,37 +86,16 @@ export default function Builder({ start }: { start?: string }) {
   );
 }
 
-// The first step: one picture per wallet, no words; tap one to start with it, in the two leathers
-// shown (body, and pockets or outer leather) and, if given, a thread. Also on the home page.
-interface Starter { product: string; body: string; accent: string; thread?: string; label: string }
-export const STARTERS: Starter[] = [
-  { product: "bifold", body: "Bottiglia", accent: "Napoli", label: "Vertical bifold" },
-  { product: "cardholder", body: "Prugna", accent: "R.Antico", label: "Card holder" },
-  { product: "wrap_vertical", body: "Bone", accent: "Mosto", thread: "Cream", label: "Wrap wallet" },
-];
-export function starterDesign({ product, body, accent, thread }: Starter): Design {
-  const d = freshDesign(product, body);
-  for (const id of accentIds(d)) d.colors[id] = accent;
-  return thread ? setThread(d, thread) : d;
-}
-// A new design of this product: in its starter's leathers if it has one.
-function newDesign(product: string): Design {
-  const starter = STARTERS.find((s) => s.product === product);
-  return starter ? starterDesign(starter) : freshDesign(product);
-}
-
+// The first step: one picture per wallet, no words; tap one to start with it.
 function Start({ onChoose }: { onChoose: (productId: string) => void }) {
   return (
     <main className="step start">
       <div className="choices">
-        {STARTERS.map((starter) => {
-          const p = catalog.products[starter.product];
-          return (
-            <button key={starter.product} className="choice" aria-label={starter.label} onClick={() => onChoose(starter.product)}>
-              <WalletSvg design={starterDesign(starter)} view={p.views.find((v) => v.face !== "back") ?? p.views[0]} />
-            </button>
-          );
-        })}
+        {starters.map((id) => (
+          <button key={id} className="choice" aria-label={catalog.products[id].label} onClick={() => onChoose(id)}>
+            <WalletSvg design={starterDesign(id)} view={frontView(catalog.products[id])} />
+          </button>
+        ))}
       </div>
     </main>
   );

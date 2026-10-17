@@ -117,6 +117,9 @@ thickness: { main: 1.4, other: 1.0 }
 #   pocket_types: which pockets the customer can add (top: card in from the top). Empty: no pockets to place (wrap wallet).
 #   group / variant: products shown as one tab, with their variants to pick between (e.g. wrap wallet:
 #                    vertical or horizontal).
+#   starter: the wallet's picture on the first step and the home page, and the colours a new design
+#            starts in: body leather, accent (pockets / outer leather), and optionally a thread.
+#            Products without one aren't offered there (e.g. the horizontal wrap: picked inside the wrap tab).
 #   preview: the short film shown before the specs. fold = opens and closes on its spine (bifold);
 #            turn = turns round to show both faces (card holder).
 #   views: what the customer sees (face: back = seen from behind, e.g. the outside of a bifold).
@@ -139,6 +142,7 @@ products:
   bifold:
     label: Vertical bifold
     preview: fold          # review film: opens, pockets up close, closes, turns round
+    starter: { body: Bottiglia, accent: Napoli }
     pocket_types: [top]
     edges: [straight, notch, slant, wave, step-reverse]
     corners: [rounded, square]
@@ -170,6 +174,7 @@ products:
   cardholder:
     label: Card holder
     preview: turn          # review film: front, its pockets, over to the back, its pockets, round again
+    starter: { body: Prugna, accent: R.Antico }
     pocket_types: [top]
     edges: [straight, notch, wave, step, step-reverse]
     corners: [rounded, square]
@@ -200,6 +205,7 @@ products:
     group: wrap
     variant: Vertical
     preview: turn
+    starter: { body: Bone, accent: Mosto, thread: Cream }
     pocket_types: []
     edges: []
     corners: [rounded]
